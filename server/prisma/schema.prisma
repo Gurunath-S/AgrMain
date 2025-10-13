@@ -329,7 +329,7 @@ model ProductStock{
   id            Int   @id @default(autoincrement())
   jobcardId     Int?
   jobcard       Jobcard?      @relation(fields: [jobcardId], references: [id])
-  deliveryId    Int
+  deliveryId    Int?
   itemDelivery  itemDelivery  @relation(fields: [deliveryId ], references: [id])
   itemName      String?
   itemWeight    Float?
