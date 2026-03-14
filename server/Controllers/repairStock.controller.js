@@ -308,6 +308,9 @@ const returnFromRepair = async (req, res) => {
       if (repair.status !== "InRepair")
         throw new Error("Already returned");
 
+      // Define weights for comparison and split logic at the start
+      const originalWeight = (Number(repair.product?.itemWeight || repair.itemPurchase?.grossWeight) || 0).toFixed(3);
+      const returnedWeight = (Number(itemWeight) || 0).toFixed(3);
 
       const itemWt = Number(itemWeight);
       const stoneWt = Number(stoneWeight);
@@ -446,44 +449,15 @@ const returnFromRepair = async (req, res) => {
 
           });
 
-        let updatedBalance;
-
-        if (wastageDelta > 0) {
-
-          updatedBalance =
-            goldsmith.balance -
-            wastageDelta -
-            computedFinalPurity;
-
-        }
-
-        else if (wastageDelta < 0) {
-
-          updatedBalance =
-            goldsmith.balance +
-            Math.abs(wastageDelta) -
-            computedFinalPurity;
-
-        }
-
-        else {
-
-          updatedBalance =
-            goldsmith.balance -
-            computedFinalPurity;
-
-        }
+        // Goldsmith debt is reduced by the total pure gold weight returned (computedFinalPurity).
+        // computedFinalPurity already includes any wastage adjustment (wastageDelta).
+        const updatedBalance = goldsmith.balance - computedFinalPurity;
 
         await tx.goldsmith.update({
-
           where: { id: repair.goldsmithId },
-
           data: {
-
             balance: updatedBalance
-
           }
-
         });
 
       }
@@ -554,7 +528,9 @@ const sendCustomerItemToRepair = async (req, res) => {
 
       if (!orderItem) throw new Error("Order item not found");
 
-      { console.log("selected order item", orderItem) }
+      // Define weights for comparison and split logic at the start
+      const originalWeight = (Number(orderItem.weight) || 0).toFixed(3);
+      const sentWeight = (Number(repairProduct.weight) || 0).toFixed(3);
 
       const repairNetWeight = Number(repairProduct.netWeight) || (Number(repairProduct.weight) - Number(repairProduct.stoneWeight));
       const repairTouch = Number(repairProduct.touch);
@@ -589,6 +565,10 @@ const sendCustomerItemToRepair = async (req, res) => {
       let repair;
 
       if (orderItem.stockType === "ITEM_PURCHASE") {
+        if (Number(originalWeight) > Number(sentWeight)) {
+          throw new Error("Partial repair is not allowed for Item Purchase stock");
+        }
+
         productStock = await tx.itemPurchaseEntry.create({
           data: {
             supplierId: 1, // Fallback, could look up original if needed
@@ -653,8 +633,6 @@ const sendCustomerItemToRepair = async (req, res) => {
       }
 
       // Split logic to support partial repairs
-      const originalWeight = (Number(orderItem.weight) || 0).toFixed(3);
-      const sentWeight = (Number(repairProduct.weight) || 0).toFixed(3);
       let repairOrderItemId = orderItem.id;
 
       if (orderItem.stockType !== "ITEM_PURCHASE" && Number(originalWeight) > Number(sentWeight)) {
@@ -666,7 +644,7 @@ const sendCustomerItemToRepair = async (req, res) => {
 
         // Recalculate purities for the remaining item
         const remActualPurity = (remainingNetWeight * Number(orderItem.touch || 0)) / 100;
-        let remWastagePure = 0;
+        let remWastagePure = 0;  // clear that the item is no longer "active" on that bill.
         let remFinalPurity = 0;
 
         if (orderItem.wastageType === "Touch") {
@@ -679,6 +657,11 @@ const sendCustomerItemToRepair = async (req, res) => {
         } else if (orderItem.wastageType === "+") {
           remFinalPurity = ((remainingNetWeight + Number(orderItem.wastageValue || 0)) * Number(orderItem.touch || 0)) / 100;
           remWastagePure = remFinalPurity - remActualPurity;
+        }
+
+        let newStatus = "PARTIAL_REPAIR";
+        if (orderItem.repairStatus === "PARTIAL_RETURN") {
+          newStatus = "PARTIAL_REPAIR_RETURN";
         }
 
         // 1. Update original item remaining values (keeping to 3 decimal places)
@@ -694,7 +677,7 @@ const sendCustomerItemToRepair = async (req, res) => {
             wastagePure: Number(remWastagePure.toFixed(3)),
             finalPurity: Number(remFinalPurity.toFixed(3)),
             finalWeight: Number(remFinalPurity.toFixed(3)),
-            repairStatus: "PARTIAL_REPAIR"
+            repairStatus: newStatus
           }
         });
 
@@ -757,13 +740,18 @@ const sendCustomerItemToRepair = async (req, res) => {
         }
       });
 
-      return repair;
+      const updatedOrderItem = await tx.orderItems.findUnique({
+        where: { id: Number(orderItemId) }
+      });
+
+      return { repair, updatedOrderItem };
     });
 
     res.json({
       success: true,
       msg: "Customer item sent to repair",
-      repair: result
+      repair: result.repair,
+      updatedOrderItem: result.updatedOrderItem
     });
 
   } catch (err) {
