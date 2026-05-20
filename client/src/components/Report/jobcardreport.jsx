@@ -58,11 +58,11 @@ const JobCardReport = () => {
         fromDate={fromDate ? fromDate.format("DD/MM/YYYY") : ""}
         toDate={toDate ? toDate.format("DD/MM/YYYY") : ""}
         goldSmithName={selectedGoldSmith?.name || ""}
-        jobCard={paginatedData}
+        jobCard={jobCard}
         totalJobCard={jobCard}
         repairs={repairs}
-        page={viewType === "REPAIR" ? repairPage : jobPage}
-        rowsPerPage={viewType === "REPAIR" ? repairRowsPerPage : jobRowsPerPage}
+        page={0}
+        rowsPerPage={viewType === "REPAIR" ? repairs.length : jobCard.length}
         viewType={viewType}
       />
     );
