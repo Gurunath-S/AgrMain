@@ -48,6 +48,7 @@ const ReturnStockList = () => {
     try {
       const res = await axios.get(`${BACKEND_SERVER_URL}/api/returns/return-stock`);
       const fetchedReturns = res.data.data || [];
+      console.log("fetchedReturns", fetchedReturns);
       setReturns(fetchedReturns);
 
       // Use overrides if provided (for Reset), otherwise use current state
@@ -333,9 +334,9 @@ const ReturnStockList = () => {
                 <TableCell className="BillTable-tb-td">{fmtNum(item.awt)}</TableCell>
                 <TableCell className="BillTable-tb-td">{fmtNum(item.percentage || item.touch || item.product?.touch || item.itemPurchase?.touch)}</TableCell>
                 <TableCell className="BillTable-tb-td">{item.product?.wastageType || item.itemPurchase?.wastageType || "-"}</TableCell>
-                <TableCell className="BillTable-tb-td">{fmtNum(item.product?.wastageValue || item.itemPurchase?.wastageValue)}</TableCell>
+                <TableCell className="BillTable-tb-td">{fmtNum(item.product?.wastageValue || item.itemPurchase?.wastageValue || item.itemPurchase.wastage)}</TableCell>
                 <TableCell className="BillTable-tb-td">{fmtNum(item.product?.wastagePure || item.itemPurchase?.wastagePure)}</TableCell>
-                <TableCell className="BillTable-tb-td">{fmtNum(item.fwt)}</TableCell>
+                <TableCell className="BillTable-tb-td">{fmtNum(item.product?.finalPurity || item.itemPurchase?.finalPurity)}</TableCell>
                 <TableCell className="BillTable-tb-td BillTable-reason">{item.reason || "-"}</TableCell>
                 <TableCell className="BillTable-tb-td">
                   <Tooltip title="View Full Details">

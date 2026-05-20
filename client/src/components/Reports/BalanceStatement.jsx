@@ -94,12 +94,12 @@ const BalanceStatement = ({ typeOverride }) => {
   const handlePrint = () => {
     const printContent = (
       <StatementPrint
-        data={data.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)}
+        data={data}
         type={type}
         entityName={entityName}
         fromDate={fromDate?.format("DD/MM/YYYY")}
         toDate={toDate?.format("DD/MM/YYYY")}
-        startIndex={page * rowsPerPage}
+        startIndex={0}
       />
     );
 

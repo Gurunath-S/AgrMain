@@ -16,7 +16,11 @@ exports.getCustomerStatement = async (req, res) => {
     if (!customer) return res.status(404).json({ message: "Customer not found" });
 
     const dateFilter = {};
-    if (toDate) dateFilter.lte = new Date(toDate);
+    if (toDate) {
+      const end = new Date(toDate);
+      end.setHours(23, 59, 59, 999);
+      dateFilter.lte = end;
+    }
 
     const filterObj = Object.keys(dateFilter).length > 0 ? { date: dateFilter } : {};
     const createdAtFilter = Object.keys(dateFilter).length > 0 ? { createdAt: dateFilter } : {};
@@ -444,7 +448,11 @@ exports.getGoldsmithStatement = async (req, res) => {
     if (!goldsmith) return res.status(404).json({ message: "Goldsmith not found" });
 
     const createdAtFilter = {};
-    if (toDate) createdAtFilter.lte = new Date(toDate);
+    if (toDate) {
+      const end = new Date(toDate);
+      end.setHours(23, 59, 59, 999);
+      createdAtFilter.lte = end;
+    }
 
     const filterObj = Object.keys(createdAtFilter).length > 0 ? { createdAt: createdAtFilter } : {};
 
@@ -583,7 +591,10 @@ exports.getGoldsmithStatement = async (req, res) => {
     // Handle RepairStock (Sent & Returned)
     repairStock.forEach(rs => {
       // 1. Sent to Repair (Debit)
-      const isSentInRange = (!toDate || rs.sentDate <= new Date(toDate));
+      const endLimit = toDate ? new Date(toDate) : null;
+      if (endLimit) endLimit.setHours(23, 59, 59, 999);
+      
+      const isSentInRange = (!endLimit || rs.sentDate <= endLimit);
       if (isSentInRange) {
         const stoneWtStr = rs.stoneWeight > 0 ? `, St.Wt: ${rs.stoneWeight}g` : "";
         const sourceLabel = (rs.source === "GOLDSMITH" || rs.source === "ITEM_PURCHASE") ? "Stock" : "Customer";
@@ -622,7 +633,10 @@ exports.getGoldsmithStatement = async (req, res) => {
 
       // 2. Returned from Repair (Credit)
       if (rs.status === "Returned" && rs.receivedDate) {
-        const isReceivedInRange = (!toDate || rs.receivedDate <= new Date(toDate));
+        const endLimit = toDate ? new Date(toDate) : null;
+        if (endLimit) endLimit.setHours(23, 59, 59, 999);
+        
+        const isReceivedInRange = (!endLimit || rs.receivedDate <= endLimit);
         if (isReceivedInRange) {
           const stoneWtStr = rs.stoneWeight > 0 ? `, St.Wt: ${rs.stoneWeight}g` : "";
           const sourceLabel = (rs.source === "GOLDSMITH" || rs.source === "ITEM_PURCHASE") ? "Stock" : "Customer";
@@ -752,7 +766,11 @@ exports.getSupplierStatement = async (req, res) => {
     if (!supplier) return res.status(404).json({ message: "Supplier not found" });
 
     const createdAtFilter = {};
-    if (toDate) createdAtFilter.lte = new Date(toDate);
+    if (toDate) {
+      const end = new Date(toDate);
+      end.setHours(23, 59, 59, 999);
+      createdAtFilter.lte = end;
+    }
 
     const filterObj = Object.keys(createdAtFilter).length > 0 ? { createdAt: createdAtFilter } : {};
 

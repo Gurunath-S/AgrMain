@@ -74,12 +74,12 @@ const CustReport = () => {
         fromDate={fromDate ? fromDate.format("DD/MM/YYYY") : ""}
         toDate={toDate ? toDate.format("DD/MM/YYYY") : ""}
         customerName={selectedCustomer?.name || ""}
-        billInfo={paginatedData}
-        billReceive={currentPageTotal.billReceive}
-        billAmount={currentPageTotal.billAmount}
+        billInfo={billInfo}
+        billReceive={allDataTotal.billReceive}
+        billAmount={allDataTotal.billAmount}
         overAllBalance={overAllBalance}
-        page={page}
-        rowsPerPage={rowsPerPage}
+        page={0}
+        rowsPerPage={billInfo.length}
       />
     );
 
@@ -108,6 +108,46 @@ const CustReport = () => {
 
   };
 
+
+  const allDataTotal = billInfo.reduce(
+    (acc, bill) => {
+      if (bill.type === "bill") {
+        acc.billAmount += Number(bill.info.billAmount) || 0;
+        const currentHM = Number(bill.info.hallmarkQty) * Number(bill.info.hallMark) || 0;
+        const reduction = hallmarkReductions[bill.info.id] || 0;
+        acc.hmBill += currentHM + reduction;
+      } else if (bill.type === "return" || bill.type === "repair") {
+        acc.billReceive += Number(bill.info.fwt || bill.info.purity || bill.info.weight) || 0;
+        acc.hmReceive += (bill.type === "return" ? (Number(bill.info.hallmarkReduction) || 0) : bill.type === "repair" ? (Number(bill.info.count || 0) * (Number(bill.info.bill?.hallMark) || 0)) : 0);
+      } else if (bill.type === "transaction" || bill.type === "ReceiptVoucher" || bill.type === "billReceive") {
+        acc.hmReceive += Number(bill.info.receiveHallMark) || 0;
+        if ((bill.info.type || "").toLowerCase().includes("cash")) {
+          const touch = Number(bill.info.touch) || 0;
+          const purity = Number(bill.info.purity) || 0;
+          if (touch > 0 && purity > 0) {
+            acc.billReceive += (purity / touch) * 100;
+          }
+        } else {
+          acc.billReceive += Number(bill.info.fwt || bill.info.purity || bill.info.gold) || 0;
+        }
+      } else if (bill.type === "adjustment" || bill.type === "openingBalance") {
+        const amt = Number(bill.info.goldAmount || bill.info.cashAmount) || 0;
+        const hmAmt = Number(bill.info.hmAmount) || 0;
+        if (amt > 0) {
+          acc.billAmount += amt;
+        } else {
+          acc.billReceive += Math.abs(amt);
+        }
+        if (hmAmt > 0) {
+          acc.hmBill += hmAmt;
+        } else {
+          acc.hmReceive += Math.abs(hmAmt);
+        }
+      }
+      return acc;
+    },
+    { billReceive: 0, billAmount: 0, hmReceive: 0, hmBill: 0 }
+  );
 
   const currentPageTotal = paginatedData.reduce(
     (acc, bill) => {

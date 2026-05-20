@@ -4,11 +4,21 @@ const { entryToRawGold, deleteEntryFromRawGold } = require('../Utils/addRawGoldS
 const { directTouch } = require('../Utils/directTouch')
 
 exports.getAllEntries = async (req, res) => {
+  const { startDate, endDate } = req.query;
+  let where = {};
+  if (startDate && endDate) {
+    where.date = {
+      gte: new Date(startDate),
+      lte: new Date(new Date(endDate).setHours(23, 59, 59, 999)),
+    };
+  }
+
   try {
     const entries = await prisma.entry.findMany({
+      where,
       orderBy: { id: "asc" },
     });
-    console.log('cash or gold entries', entries)
+    console.log("cash or gold entries", entries);
     res.json(entries);
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch entries" });

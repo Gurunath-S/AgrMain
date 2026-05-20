@@ -1,17 +1,28 @@
 import React, { useEffect, useState, useRef } from "react";
 import "./overallreport.css";
+import "../CustomerReturn&Repair/Customer.css";
 import { BACKEND_SERVER_URL } from "../../Config/Config";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import {
   Box,
   Button,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  TablePagination,
   TextField,
   Typography,
   Stack,
   CircularProgress,
   Paper,
   IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import { Search, Clear as ClearIcon } from "@mui/icons-material";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -25,10 +36,11 @@ const OverallReportNew = () => {
   const [activeCustomers, setActiveCustomers] = useState([]); // Base list for period
   const [filteredCustomers, setFilteredCustomers] = useState([]); // Search-filtered list
   const [searchTerm, setSearchTerm] = useState("");
-  const [startDate, setStartDate] = useState(null);
-  const [endDate, setEndDate] = useState(null);
+  const [startDate, setStartDate] = useState(dayjs().subtract(15, "day"));
+  const [endDate, setEndDate] = useState(dayjs());
   const [loading, setLoading] = useState(false);
-  const printRef = useRef();
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
 
   useEffect(() => {
     fetchReportData();
@@ -53,7 +65,7 @@ const OverallReportNew = () => {
       const queryParams = (start && end) ? `?startDate=${start}&endDate=${end}` : "";
       
       const [customersRes, billsRes, stockRes, entriesRes, purchaseStockRes] = await Promise.all([
-        fetch(`${BACKEND_SERVER_URL}/api/customers`),
+        fetch(`${BACKEND_SERVER_URL}/api/customers${queryParams}`),
         fetch(`${BACKEND_SERVER_URL}/api/bill${queryParams}`),
         fetch(`${BACKEND_SERVER_URL}/api/productStock${queryParams}`),
         fetch(`${BACKEND_SERVER_URL}/api/entries${queryParams}`),
@@ -133,7 +145,16 @@ const OverallReportNew = () => {
       );
 
       const totalEntriesPurity = entriesData.reduce(
-        (sum, e) => sum + (parseFloat(e.finalPurity) || 0),
+        (sum, e) => {
+          if (e.type === "Gold") {
+            return sum + (parseFloat(e.purity) || 0);
+          } else if (e.type === "Cash" || e.type === "Cash RTGS") {
+            console.log(e)
+            const pureGold = e.touch > 0 ? (parseFloat(e.purity) / parseFloat(e.touch)) * 100 : 0;
+            return sum + (pureGold || 0);
+          }
+          return sum;
+        },
         0
       );
 
@@ -150,7 +171,7 @@ const OverallReportNew = () => {
         { label: "Total Profit", value: `${totalProfit.toFixed(2)}` },
         { label: isFiltered ? "Pure Sold Total" : "Pure Balance Total", value: `${pureBalanceTotal.toFixed(3)} g` },
         { label: isFiltered ? "Hallmark Sold Total" : "Hallmark Balance Total", value: `${hallmarkBalanceTotal.toFixed(3)} g` },
-        { label: "Entries Gold Purity", value: `${totalEntriesPurity.toFixed(3)} g` },
+        { label: "Cash/Gold (Pure gold + purity)", value: `${totalEntriesPurity.toFixed(3)} g` },
         { label: isFiltered ? "Active Customers" : "Total Customers", value: `${activeCustomersCount}` },
         {
           label: isFiltered ? "Stock Added" : "Stock",
@@ -171,88 +192,233 @@ const OverallReportNew = () => {
     setFilteredCustomers(
       activeCustomers.filter((c) => c.name?.toLowerCase().includes(lower))
     );
+    setPage(0);
   }, [searchTerm, activeCustomers]);
 
-  const handlePrint = () => {
-    const printContent = printRef.current.innerHTML;
-    const newWin = window.open("", "_blank", "width=1000,height=700");
-    newWin.document.write(`
+  const [printDialogOpen, setPrintDialogOpen] = useState(false);
+
+  const handlePrint = (type) => {
+    const fmtPrintDate = (d) => (d ? d.format("DD/MM/YYYY") : "—");
+    const dateRangeText = startDate || endDate 
+      ? `Date Range: ${fmtPrintDate(startDate)} to ${fmtPrintDate(endDate)}` 
+      : "";
+
+    const summaryHtml = `
+      <div class="summary-section">
+        <h3>Report Summary</h3>
+        <div class="summary-grid">
+          ${reportData.map(item => `
+            <div class="summary-item">
+              <div class="s-label">${item.label}</div>
+              <div class="s-value">${item.value}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+
+    const tableRows = filteredCustomers.map((c, index) => `
+      <tr>
+        <td>${index + 1}</td>
+        <td>${c.name}</td>
+        <td>${c.phone || "-"}</td>
+        <td>${(parseFloat(c.customerBillBalance?.balance) || 0).toFixed(3)}</td>
+        <td>${(parseFloat(c.customerBillBalance?.hallMarkBal) || 0).toFixed(3)}</td>
+      </tr>
+    `).join("");
+
+    const balancesHtml = `
+      <div class="balances-section">
+        <h3>Customer Bill Balances</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>S.No</th>
+              <th>Customer Name</th>
+              <th>Phone</th>
+              <th>Pure Balance</th>
+              <th>Hallmark Balance</th>
+            </tr>
+          </thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+      </div>
+    `;
+
+    const printHtml = `
       <html>
         <head>
-          <title>Customer Report</title>
+          <title>Overall Report</title>
           <style>
-            body { font-family: Arial, sans-serif; padding: 20px; }
-            h2 { text-align: center; margin-bottom: 16px; }
-            table { width: 100%; border-collapse: collapse; }
-            th, td { border: 1px solid #000; padding: 8px; text-align: center; }
-            th { background: #f2f2f2; }
+            body { font-family: Arial, sans-serif; padding: 20px; color: #333; }
+            h2 { text-align: center; margin-bottom: 4px; color: #000; }
+            h3 { border-bottom: 2px solid #eee; padding-bottom: 8px; margin-top: 20px; }
+            .date-range { text-align: center; font-weight: bold; margin-bottom: 20px; font-size: 14px; color: #666; }
+            
+            .summary-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 30px; }
+            .summary-item { padding: 12px; border: 1px solid #ddd; border-radius: 8px; background: #fafafa; }
+            .s-label { font-size: 12px; color: #666; text-transform: uppercase; margin-bottom: 4px; font-weight: bold; }
+            .s-value { font-size: 18px; font-weight: bold; color: #000; }
+
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+            th, td { border: 1px solid #ccc; padding: 10px; text-align: center; font-size: 13px; }
+            th { background: #f4f4f4; font-weight: bold; }
+            tr:nth-child(even) { background: #f9f9f9; }
+            
+            @media print {
+              .summary-item { break-inside: avoid; }
+              table { break-inside: auto; }
+              tr { break-inside: avoid; break-after: auto; }
+            }
           </style>
         </head>
-        <body>${printContent}</body>
+        <body>
+          <h2>Overall Report</h2>
+          ${dateRangeText ? `<p class="date-range">${dateRangeText}</p>` : ""}
+          ${(type === 'summary' || type === 'both') ? summaryHtml : ''}
+          ${(type === 'balances' || type === 'both') ? balancesHtml : ''}
+        </body>
       </html>
-    `);
-    newWin.document.close();
+    `;
 
-    newWin.onload = function () {
-      newWin.focus();
+    const newWin = window.open("", "_blank", "width=1000,height=700");
+    newWin.document.write(printHtml);
+    newWin.document.close();
+    newWin.focus();
+    setTimeout(() => {
       newWin.print();
       newWin.close();
-    };
+    }, 400);
+    setPrintDialogOpen(false);
   };
 
+  const paginatedCustomers = filteredCustomers.slice(
+    page * rowsPerPage,
+    page * rowsPerPage + rowsPerPage
+  );
 
   return (
-    <div className="overall-report-container">
+    <Box p={3}>
       <ToastContainer position="top-right" autoClose={3000} />
-      <Box sx={{ mb: 4, textAlign: "center" }}>
-        <Typography variant="h4" sx={{ fontWeight: 600, color: "#2c3e50" }}>
-          Overall Report
-        </Typography>
-        <Typography variant="subtitle1" sx={{ color: "#7f8c8d", mb: 2 }}>
-          Summary of all balances, stock, and profits
-        </Typography>
+      
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+        <Box>
+          <Typography variant="h5" sx={{ fontWeight: 600 }}>Overall Report</Typography>
+          <Typography variant="subtitle2" sx={{ color: "text.secondary" }}>
+            Summary of all balances, stock, and profits
+          </Typography>
+        </Box>
+        <Box className="no-print">
+          <Button variant="outlined" onClick={() => setPrintDialogOpen(true)}>Print Report</Button>
+        </Box>
+      </Box>
 
-        <LocalizationProvider dateAdapter={AdapterDayjs}>
-          <Stack
-            direction={{ xs: "column", sm: "row" }}
-            spacing={2}
-            justifyContent="center"
-            alignItems="center"
-            className="no-print"
-            sx={{ mt: 3 }}
-          >
-            <DatePicker
-              label="From"
-              value={startDate}
-              onChange={(newValue) => setStartDate(newValue)}
-              format="DD/MM/YYYY"
-              slotProps={{ textField: { size: "small", sx: { width: { xs: "100%", sm: 200 } } } }}
-            />
-            <DatePicker
-              label="To"
-              value={endDate}
-              onChange={(newValue) => setEndDate(newValue)}
-              format="DD/MM/YYYY"
-              slotProps={{ textField: { size: "small", sx: { width: { xs: "100%", sm: 200 } } } }}
-              minDate={startDate}
-            />
-            <Button
-              variant="outlined"
-              startIcon={<ClearIcon />}
-              onClick={() => {
-                setStartDate(null);
-                setEndDate(null);
-              }}
-              sx={{ textTransform: "none", color: "#7f8c8d", borderColor: "#7f8c8d", height: 40 }}
+      {/* Print Selection Dialog */}
+      <Dialog open={printDialogOpen} onClose={() => setPrintDialogOpen(false)}>
+        <DialogTitle sx={{ fontWeight: 600 }}>Print Report Selection</DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" sx={{ mb: 2 }}>
+            What would you like to include in the printed report?
+          </Typography>
+          <Stack spacing={2}>
+            <Button 
+              variant="outlined" 
+              fullWidth 
+              onClick={() => handlePrint('summary')}
+              sx={{ justifyContent: 'flex-start', py: 1.5 }}
             >
-              Clear
+              Print Summary Cards Only
+            </Button>
+            <Button 
+              variant="outlined" 
+              fullWidth 
+              onClick={() => handlePrint('balances')}
+              sx={{ justifyContent: 'flex-start', py: 1.5 }}
+            >
+              Print Customer Balances Only
+            </Button>
+            <Button 
+              variant="contained" 
+              fullWidth 
+              onClick={() => handlePrint('both')}
+              sx={{ justifyContent: 'flex-start', py: 1.5, backgroundColor: '#0074d9' }}
+            >
+              Print Full Report (Both)
             </Button>
           </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPrintDialogOpen(false)} sx={{ color: 'text.secondary' }}>
+            Cancel
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Box mb={4} display="flex" gap={2} flexWrap="wrap" alignItems="center" className="no-print">
+        <TextField
+          size="small"
+          placeholder="Search customer..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          InputProps={{
+            startAdornment: <Search sx={{ mr: 1, color: "action.active" }} />
+          }}
+          sx={{ width: 260 }}
+        />
+        <LocalizationProvider dateAdapter={AdapterDayjs}>
+          <DatePicker
+            label="From Date"
+            value={startDate}
+            format="DD/MM/YYYY"
+            maxDate={endDate || undefined}
+            onChange={(newValue) => {
+              if (newValue && endDate && newValue.isAfter(endDate, "day")) {
+                toast.error("From Date cannot be after To Date");
+                return;
+              }
+              setStartDate(newValue);
+            }}
+            slotProps={{ textField: { size: "small", sx: { width: 200 } } }}
+          />
         </LocalizationProvider>
+        <LocalizationProvider dateAdapter={AdapterDayjs}>
+          <DatePicker
+            label="To Date"
+            value={endDate}
+            format="DD/MM/YYYY"
+            minDate={startDate || undefined}
+            onChange={(newValue) => {
+              if (newValue && startDate && newValue.isBefore(startDate, "day")) {
+                toast.error("To Date cannot be before From Date");
+                return;
+              }
+              setEndDate(newValue);
+            }}
+            slotProps={{ textField: { size: "small", sx: { width: 200 } } }}
+          />
+        </LocalizationProvider>
+        <Button
+          variant="contained"
+          size="small"
+          sx={{
+            backgroundColor: "#d32f2f",
+            color: "white",
+            "&:hover": { backgroundColor: "#c62828" },
+            height: "40px",
+            textTransform: "none"
+          }}
+          onClick={() => {
+            setSearchTerm("");
+            setStartDate(dayjs().subtract(15, "day"));
+            setEndDate(dayjs());
+          }}
+        >
+          Reset
+        </Button>
       </Box>
 
       {loading ? (
-        <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
+        <Box sx={{ display: "flex", justifyContent: "center", my: 10 }}>
           <CircularProgress />
         </Box>
       ) : (
@@ -266,62 +432,57 @@ const OverallReportNew = () => {
             ))}
           </div>
 
-          <div className="customer-balances-section">
-            <Box className="no-print" sx={{ mb: 2 }}>
-              <TextField
-                variant="outlined"
-                size="small"
-                placeholder="Search customer..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                InputProps={{
-                  startAdornment: <Search sx={{ mr: 1, color: "action.active" }} />
-                }}
-                sx={{ width: { xs: "100%", sm: 300 } }}
-              />
-            </Box>
-
-            <div ref={printRef}>
-              <h2>Customer Bill Balances</h2>
-              <table className="customer-table">
-                <thead>
-                  <tr>
-                    <th>S.No</th>
-                    <th>Customer Name</th>
-                    <th>Phone</th>
-                    <th>Pure Balance</th>
-                    <th>Hallmark Balance</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredCustomers.length > 0 ? (
-                    filteredCustomers.map((c, index) => (
-                      <tr key={c.id || index}>
-                        <td>{index + 1}</td>
-                        <td>{c.name}</td>
-                        <td>{c.phone || "-"}</td>
-                        <td>{(parseFloat(c.customerBillBalance?.balance) || 0).toFixed(3)}</td>
-                        <td>{(parseFloat(c.customerBillBalance?.hallMarkBal) || 0).toFixed(3)}</td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan="5">No matching customers found</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="print-btn-container no-print">
-              <button className="print-btn" onClick={handlePrint}>
-                Print Report
-              </button>
-            </div>
-          </div>
+          <Box className="customer-balances-section">
+            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+              Customer Bill Balances
+            </Typography>
+            
+            <Table className="BillTable">
+              <TableHead>
+                <TableRow>
+                  <TableCell className="BillTable-th-td">S.No</TableCell>
+                  <TableCell className="BillTable-th-td">Customer Name</TableCell>
+                  <TableCell className="BillTable-th-td">Phone</TableCell>
+                  <TableCell className="BillTable-th-td">Pure Balance</TableCell>
+                  <TableCell className="BillTable-th-td">Hallmark Balance</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {paginatedCustomers.length > 0 ? (
+                  paginatedCustomers.map((c, index) => (
+                    <TableRow key={c.id || index}>
+                      <TableCell className="BillTable-tb-td">{page * rowsPerPage + index + 1}</TableCell>
+                      <TableCell className="BillTable-tb-td">{c.name}</TableCell>
+                      <TableCell className="BillTable-tb-td">{c.phone || "-"}</TableCell>
+                      <TableCell className="BillTable-tb-td">{(parseFloat(c.customerBillBalance?.balance) || 0).toFixed(3)}</TableCell>
+                      <TableCell className="BillTable-tb-td">{(parseFloat(c.customerBillBalance?.hallMarkBal) || 0).toFixed(3)}</TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={5} align="center">No matching customers found</TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+            
+            <TablePagination
+              component="div"
+              count={filteredCustomers.length}
+              page={page}
+              rowsPerPage={rowsPerPage}
+              onPageChange={(e, p) => setPage(p)}
+              onRowsPerPageChange={(e) => {
+                setRowsPerPage(parseInt(e.target.value, 10));
+                setPage(0);
+              }}
+              rowsPerPageOptions={[10, 25, 50, 100]}
+              className="no-print"
+            />
+          </Box>
         </>
       )}
-    </div>
+    </Box>
   );
 };
 

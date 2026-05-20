@@ -46,14 +46,25 @@ exports.createCustomer = async (req, res) => {
 };
 
 exports.getAllCustomers = async (req, res) => {
+  const { startDate, endDate } = req.query;
+
+  let where = {};
+  if (startDate && endDate) {
+    where.createdAt = {
+      gte: new Date(startDate),
+      lte: new Date(new Date(endDate).setHours(23, 59, 59, 999)),
+    };
+  }
+
   try {
     const customers = await prisma.customer.findMany({
-      include:{
-        customerBillBalance:true
+      where,
+      include: {
+        customerBillBalance: true,
       },
-      orderBy:{
-       id:"asc"
-     }
+      orderBy: {
+        id: "asc",
+      },
     });
     res.status(200).json(customers);
   } catch (error) {

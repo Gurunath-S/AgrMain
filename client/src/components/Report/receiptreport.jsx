@@ -49,10 +49,10 @@ const ReceiptReport = () => {
         fromDate={fromDate ? fromDate.format("DD/MM/YYYY") : ""}
         toDate={toDate ? toDate.format("DD/MM/YYYY") : ""}
         customerName={selectedCustomer?.name || ""}
-        receipt={paginatedData}
+        receipt={receipt}
         selectedCustomer={selectedCustomer}
-        page={page}
-        rowsPerPage={rowsPerPage}
+        page={0}
+        rowsPerPage={receipt.length}
       />
     );
 
