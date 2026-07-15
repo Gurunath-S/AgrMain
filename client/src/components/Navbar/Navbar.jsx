@@ -44,6 +44,8 @@ const Navbar = () => {
       path === "/overallreport"
     ) {
       setActiveReport(path);
+    } else {
+      setActiveReport("");
     }
 
     // stock menus
@@ -53,6 +55,8 @@ const Navbar = () => {
       path === "/rawgoldstock"
     ) {
       setActiveStock(path);
+    } else {
+      setActiveStock("");
     }
 
     // voucher menus
@@ -61,6 +65,8 @@ const Navbar = () => {
       path === "/expensevoucher"
     ) {
       setActiveVoucher(path);
+    } else {
+      setActiveVoucher("");
     }
 
     // repair menus
@@ -69,6 +75,8 @@ const Navbar = () => {
       path === "/repairstocklist"
     ) {
       setActiveRepair(path);
+    } else {
+      setActiveRepair("");
     }
 
     // return menus
@@ -78,6 +86,8 @@ const Navbar = () => {
       path === "/customerrepairstocklist"
     ) {
       setActiveReturn(path);
+    } else {
+      setActiveReturn("");
     }
 
   }, [location.pathname]);
@@ -279,7 +289,7 @@ const Navbar = () => {
                 <a
                   key={path}
                   href={path}
-                  style={getReportItemStyle(path)} // reuse styles
+                  style={getDropdownItemStyle(path, activeVoucher)}
                   onClick={(e) => {
                     e.preventDefault();
                     handleVoucherClick(path);
@@ -336,7 +346,7 @@ const Navbar = () => {
                 <a
                   key={path}
                   href={path}
-                  style={getReportItemStyle(path)} // reuse styles
+                  style={getDropdownItemStyle(path, activeStock)}
                   onClick={(e) => {
                     e.preventDefault();
                     handleStockClick(path);
@@ -611,15 +621,17 @@ const navLeft = {
 
 const navLink = {
   cursor: "pointer",
-  fontSize: "1.15rem",
+  fontSize: "1.05rem",
   fontWeight: "600",
   textDecoration: "none",
-  padding: "8px 16px",
+  padding: "8px 12px",
   borderRadius: "6px",
   transition: "all 0.2s ease",
   height: "100%",
   display: "flex",
   alignItems: "center",
+  boxSizing: "border-box",
+  flexShrink: 0,
 };
 
 const navRight = {

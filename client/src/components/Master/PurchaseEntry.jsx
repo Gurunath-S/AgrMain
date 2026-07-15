@@ -292,6 +292,41 @@ function PurchaseEntry() {
     return round3(availableBalance - currentAdvance);
   };
 
+  const getRemainingPhysStockDisplay = () => {
+    if (!form.advanceTouch) return 0;
+    const selectedStock = rawGoldStock.find(r => String(r.touch) === String(form.advanceTouch));
+    let availableBalance = selectedStock ? (selectedStock.remainingAmt || 0) : 0;
+
+    if (isEdit && selectedId) {
+      const oldEntry = entries.find(e => e.id === selectedId);
+      if (oldEntry && String(oldEntry.advanceTouch) === String(form.advanceTouch) && oldEntry.advanceGold) {
+        availableBalance += oldEntry.advanceGold;
+      }
+    }
+
+    const currentAdvance = Number(form.advanceGold) || 0;
+    return round3(availableBalance - currentAdvance);
+  };
+
+  const getRemainingPureStockDisplay = () => {
+    if (!form.advanceTouch) return 0;
+    const selectedStock = rawGoldStock.find(r => String(r.touch) === String(form.advanceTouch));
+    let availableBalance = selectedStock ? (selectedStock.remainingWt || 0) : 0;
+
+    if (isEdit && selectedId) {
+      const oldEntry = entries.find(e => e.id === selectedId);
+      if (oldEntry && String(oldEntry.advanceTouch) === String(form.advanceTouch) && oldEntry.advanceGold) {
+        const oldTouch = Number(oldEntry.advanceTouch) || 0;
+        availableBalance += (oldEntry.advanceGold * oldTouch) / 100;
+      }
+    }
+
+    const currentAdvance = Number(form.advanceGold) || 0;
+    const currentTouch = Number(form.advanceTouch) || 0;
+    const currentPure = (currentAdvance * currentTouch) / 100;
+    return round3(availableBalance - currentPure);
+  };
+
   const openReceiveDialogHandler = (entry) => {
     setSelectedEntryForReceive(entry);
     setReceiveForm({
@@ -860,7 +895,7 @@ function PurchaseEntry() {
 
           <div style={{
             height: "20px",
-            color: form.advanceTouch ? (getRemainingStockDisplay() < 0 ? "#d32f2f" : "#1976d2") : "inherit",
+            color: form.advanceTouch ? (getRemainingPhysStockDisplay() < 0 || getRemainingPureStockDisplay() < 0 ? "#d32f2f" : "#1976d2") : "inherit",
             fontWeight: form.advanceTouch ? "bold" : "normal",
             fontSize: "0.85rem",
             marginLeft: "4px",
@@ -868,7 +903,7 @@ function PurchaseEntry() {
             marginTop: "4px"
           }}>
             {form.advanceTouch
-              ? `Remaining Raw Gold : ${getRemainingStockDisplay()}g`
+              ? `Remaining Physical Gold : ${getRemainingPhysStockDisplay()}g | Pure Gold : ${getRemainingPureStockDisplay()}g`
               : "Select a touch point to view raw gold balance"}
           </div>
 
