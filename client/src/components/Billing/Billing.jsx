@@ -1071,7 +1071,8 @@ const Billing = () => {
       }
     });
 
-    const finalTotalProfit = totalBillProfitCalc + stoneProfitCalc;
+    const finalTotalProfit = totalBillProfitCalc 
+    // + stoneProfitCalc;
     const profitPercentage = FWT > 0 ? (finalTotalProfit / FWT) * 100 : 0;
 
     return {
