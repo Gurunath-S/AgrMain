@@ -84,7 +84,7 @@ const OrderReport = () => {
         name: item.item_name,
         description: item.description,
         weight: weight.toFixed(3),
-        dueDate: new Date(item.due_date?.split("T")[0]).toLocaleDateString("en-IN") || "N/A",
+        dueDate: item.due_date ? new Date(item.due_date).toLocaleDateString("en-GB") : "N/A",
         rawDueDate: item.due_date,
         status: item.status || "Pending",
         workerName: item.worker_name || "",
@@ -105,7 +105,7 @@ const OrderReport = () => {
         displayIndex: idx + 1,
         id: `Order #${idx + 1}`,
         totalPurity: group.totalPurity.toFixed(3),
-        orderDate: new Date(group.createdAt.split("T")[0]).toLocaleDateString("en-IN"),
+        orderDate: group.createdAt ? new Date(group.createdAt).toLocaleDateString("en-GB") : "N/A",
         rawOrderDate: group.createdAt,
       }));
   };

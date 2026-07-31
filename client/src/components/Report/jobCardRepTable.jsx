@@ -194,7 +194,7 @@ const JobCardRepTable = forwardRef((props, ref) => {
               {props.paginatedRepairs.map((repair, index) => (
                 <tr key={repair.id}>
                   <td>{props.page * props.rowsPerPage + index + 1}</td>
-                  <td>{new Date(repair.sentDate).toLocaleDateString("en-GB")}</td>
+                  <td>{new Date(repair.sentDate || repair.createdAt).toLocaleDateString("en-GB")}</td>
                   <td>{repair.itemName || repair.product?.itemName || repair.itemPurchase?.itemName || "-"}</td>
                   <td>{repair.count || repair.orderItem?.count || repair.product?.count || repair.itemPurchase?.count || "-"}</td>
                   <td>{(Number(repair.grossWeight) || 0).toFixed(3)}</td>

@@ -12,6 +12,7 @@ model User {
   username  String   @unique
   password  String
   createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 }
 
 model Customer {
@@ -20,6 +21,7 @@ model Customer {
   phone               String?
   address             String?
   createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @default(now()) @updatedAt
   bill                Bill[]
   transactions        Transaction[]
   billReceive         billReceived[]
@@ -32,12 +34,14 @@ model MasterItem {
   id        Int      @id @default(autoincrement())
   itemName  String
   createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 }
 
 model MasterTouch {
   id           Int            @id @default(autoincrement())
   touch        Float
   createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @default(now()) @updatedAt
   rawGoldStock RawgoldStock[]
 }
 
@@ -45,6 +49,7 @@ model masterWastage {
   id        Int      @id @default(autoincrement())
   wastage   Float
   createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 }
 
 model JewelStock {
@@ -56,6 +61,7 @@ model JewelStock {
   touch       Float
   purityValue Float
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
 }
 
 model Transaction {
@@ -70,6 +76,7 @@ model Transaction {
   touch       Float?
   customerId  Int
   createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @default(now()) @updatedAt
   customer    Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
   rawGoldLogs RawGoldLogs? @relation(fields: [logId], references: [id])
 
@@ -88,6 +95,7 @@ model Entry {
   purity      Float?
   goldRate    Float?
   createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @default(now()) @updatedAt
   rawGoldLogs RawGoldLogs? @relation(fields: [logId], references: [id])
 
   @@index([logId], map: "Entry_logId_fkey")
@@ -105,7 +113,7 @@ model customer_order {
   status         String                    @default("Pending")
   worker_name    String?
   created_at     DateTime                  @default(now())
-  updatedAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @default(now()) @updatedAt
   customers      Customer                  @relation(fields: [customer_id], references: [id], onDelete: Cascade)
   productImages  product_multiple_images[]
 
@@ -116,6 +124,8 @@ model product_multiple_images {
   id                   Int            @id @default(autoincrement())
   customer_order_id    Int
   filename             String
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @default(now()) @updatedAt
   customerOrderDetails customer_order @relation(fields: [customer_order_id], references: [id], onDelete: Cascade)
 
   @@index([customer_order_id], map: "product_multiple_images_customer_order_id_fkey")
@@ -126,6 +136,8 @@ model MasterBullion {
   name      String
   phone     String?
   address   String?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @default(now()) @updatedAt
   purchases BullionPurchase[]
 }
 
@@ -139,6 +151,7 @@ model BullionPurchase {
   amount       Float
   balance      Float
   createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @default(now()) @updatedAt
   bullion      MasterBullion @relation(fields: [bullionId], references: [id])
   givenDetails GivenDetail[]
 
@@ -152,6 +165,8 @@ model GivenDetail {
   touch           Float?
   purity          Float?
   purchaseId      Int
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @default(now()) @updatedAt
   bullionPurchase BullionPurchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
 
   @@index([purchaseId], map: "GivenDetail_purchaseId_fkey")
@@ -183,7 +198,7 @@ model Jobcard {
   goldsmithId  Int
   description  String?
   createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @default(now())
+  updatedAt    DateTime          @default(now()) @updatedAt
   goldsmith    Goldsmith         @relation(fields: [goldsmithId], references: [id])
   received     Receivedsection[]
   total        Total[]
@@ -203,7 +218,7 @@ model givenGold {
   touch       Float?
   purity      Float?
   createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @default(now())
+  updatedAt   DateTime     @default(now()) @updatedAt
   goldsmith   Goldsmith?   @relation(fields: [goldsmithId], references: [id])
   jobcard     Jobcard?     @relation(fields: [jobcardId], references: [id])
   rawGoldLogs RawGoldLogs? @relation(fields: [logId], references: [id])
@@ -228,7 +243,7 @@ model itemDelivery {
   goldsmithId  Int?
   jobcardId    Int?
   createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @default(now())
+  updatedAt    DateTime       @default(now()) @updatedAt
   deduction    deduction[]
   goldsmith    Goldsmith?     @relation(fields: [goldsmithId], references: [id])
   jobcard      Jobcard?       @relation(fields: [jobcardId], references: [id])
@@ -245,7 +260,7 @@ model deduction {
   weight       Float?
   stoneWt      Float?
   createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @default(now())
+  updatedAt    DateTime     @default(now()) @updatedAt
   itemDelivery itemDelivery @relation(fields: [deliveryId], references: [id])
 
   @@index([deliveryId], map: "deduction_deliveryId_fkey")
@@ -265,7 +280,7 @@ model Total {
   receivedTotal    Float?
   isFinished       String?
   createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @default(now())
+  updatedAt        DateTime  @default(now()) @updatedAt
   goldsmith        Goldsmith @relation(fields: [goldsmithId], references: [id])
   jobcard          Jobcard?  @relation(fields: [jobcardId], references: [id])
 
@@ -282,7 +297,7 @@ model Receivedsection {
   jobcardId   Int
   goldsmithId Int
   createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @default(now())
+  updatedAt   DateTime     @default(now()) @updatedAt
   goldsmith   Goldsmith    @relation(fields: [goldsmithId], references: [id])
   jobcard     Jobcard      @relation(fields: [jobcardId], references: [id])
   rawGoldLogs RawGoldLogs? @relation(fields: [logId], references: [id])
@@ -300,6 +315,8 @@ model RawgoldStock {
   amount      Float?        @default(0)
   remainingWt Float?
   remainingAmt Float?       @default(0)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @default(now()) @updatedAt
   rawGoldLogs RawGoldLogs[]
   masterTouch MasterTouch   @relation(fields: [touchId], references: [id])
 
@@ -314,6 +331,8 @@ model RawGoldLogs {
   touch                Float?
   purity               Float?
   date                 DateTime                   @default(now())
+  createdAt            DateTime                   @default(now())
+  updatedAt            DateTime                   @default(now()) @updatedAt
   entry                Entry[]
   expenseTracker       ExpenseTracker[]
   itemPurchaseReceived ItemPurchaseReceivedGold[]
@@ -339,7 +358,7 @@ model ExpenseTracker {
   purity      Float?
   description String?
   createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @default(now())
+  updatedAt   DateTime     @default(now()) @updatedAt
   rawGoldLogs RawGoldLogs? @relation(fields: [logId], references: [id])
 
   @@index([logId], map: "ExpenseTracker_logId_fkey")
@@ -356,7 +375,7 @@ model Balances {
   totalReceivedTouch  Float
   totalReceivedPurity Float
   createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @default(now())
+  updatedAt           DateTime  @default(now()) @updatedAt
   goldsmith           Goldsmith @relation(fields: [goldsmithId], references: [id])
 
   @@index([goldsmithId], map: "Balances_goldsmithId_fkey")
@@ -374,6 +393,7 @@ model Repair {
   touch        Float
   netWeight    Float
   createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
   goldsmith    Goldsmith @relation(fields: [goldsmithId], references: [id])
 
   @@index([goldsmithId], map: "Repair_goldsmithId_fkey")
@@ -396,6 +416,7 @@ model ProductStock {
   isBillProduct Boolean       @default(false)
   isActive      Boolean       @default(true)
   createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @default(now()) @updatedAt
   source        StockSource   @default(NORMAL)
   itemDelivery  itemDelivery? @relation(fields: [deliveryId], references: [id])
   jobcard       Jobcard?      @relation(fields: [jobcardId], references: [id])
@@ -426,6 +447,7 @@ model Bill {
   Totalprofit        Float?
   cashBalance        Float?
   createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @default(now()) @updatedAt
   customers          Customer       @relation(fields: [customer_id], references: [id], onDelete: Cascade)
   orders             OrderItems[]
   billReceive        billReceived[]
@@ -447,6 +469,7 @@ model OrderItems {
   percentage         Float?
   finalWeight        Float?
   createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @default(now()) @updatedAt
   stockId            Int?
   stockType          String?       @default("PRODUCT")
   touch              Float?
@@ -478,6 +501,7 @@ model billReceived {
   receiveHallMark Float?
   amount          Float?
   createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @default(now()) @updatedAt
   bill            Bill?        @relation(fields: [billId], references: [id], onDelete: Cascade)
   customers       Customer     @relation(fields: [customer_id], references: [id], onDelete: Cascade)
   rawGoldLogs     RawGoldLogs? @relation(fields: [logId], references: [id])
@@ -500,6 +524,7 @@ model receiptVoucher {
   receiveHallMark Float?
   amount          Float?
   createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @default(now()) @updatedAt
   customers       Customer     @relation(fields: [customer_id], references: [id], onDelete: Cascade)
   rawGoldLogs     RawGoldLogs? @relation(fields: [logId], references: [id])
 
@@ -515,6 +540,7 @@ model customerBillBalance {
   initialHallmark Float?   // Added to fix Opening Balance row bug
   customer_id     Int      @unique
   createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now()) @updatedAt
   customers       Customer @relation(fields: [customer_id], references: [id], onDelete: Cascade)
 }
 
@@ -576,6 +602,7 @@ model PurchaseReceivedGold {
   touch           Float
   logId           Int?
   createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @default(now()) @updatedAt
   date            DateTime      @default(now())
   rawGoldLogs     RawGoldLogs?  @relation(fields: [logId], references: [id], onDelete: Cascade)
   purchaseEntry   PurchaseEntry @relation(fields: [purchaseEntryId], references: [id], onDelete: Cascade)
@@ -640,6 +667,7 @@ model ItemPurchaseReceivedGold {
   date                DateTime          @default(now())
   logId               Int?
   createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @default(now()) @updatedAt
   itemPurchaseEntry   ItemPurchaseEntry @relation(fields: [itemPurchaseEntryId], references: [id], onDelete: Cascade)
   rawGoldLog          RawGoldLogs?      @relation(fields: [logId], references: [id], onDelete: Cascade)
 
@@ -692,6 +720,8 @@ model RepairStock {
   receivedPurity Float?
   billId         Int?
   orderItemId    Int?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @default(now()) @updatedAt
   bill           Bill?              @relation(fields: [billId], references: [id])
   goldsmith      Goldsmith?         @relation("GoldsmithRepairRelation", fields: [goldsmithId], references: [id])
   itemPurchase   ItemPurchaseEntry? @relation(fields: [itemPurchaseId], references: [id])
@@ -712,6 +742,7 @@ model RepairLogs {
   action    String
   note      String?  @db.Text
   createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 }
 
 model returnLogs {
@@ -734,6 +765,7 @@ model returnLogs {
   reason         String?            @db.Text
   source         String
   createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @default(now()) @updatedAt
   bill           Bill?              @relation(fields: [billId], references: [id])
   itemPurchase   ItemPurchaseEntry? @relation(fields: [itemPurchaseId], references: [id])
   orderItem      OrderItems?        @relation(fields: [orderItemId], references: [id])
@@ -763,4 +795,5 @@ model BalanceAdjustment {
   description String?
   date        DateTime @default(now())
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
 }

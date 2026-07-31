@@ -1,6 +1,6 @@
 
 import React from "react";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { HashRouter, Routes, Route, useLocation } from "react-router-dom";
 import Home from "./components/Home/Home";
 import Customer from "./components/Customer/Customer";
 import Goldsmith from "./components/Goldsmith/Goldsmith";
@@ -36,7 +36,7 @@ import BalanceStatement from "./components/Reports/BalanceStatement";
 
 function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <Routes>
         <Route path="/" element={<Home />} />
 
@@ -263,7 +263,7 @@ function App() {
 
         <Route path="/master/*" element={<Master />} />
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
 

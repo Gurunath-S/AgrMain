@@ -53,7 +53,7 @@ const CustomerReportPrint=(props)=>{
                          : (bill.info.billNo || bill.info.billId || (bill.info.bill && bill.info.bill.id) || "-")}
                      </td>
                      <td style={style.customerReportBorder}>
-                       {new Date(bill.info.createdAt || bill.info.sentDate).toLocaleDateString(
+                       {new Date(bill.info.date || bill.info.sentDate || bill.info.createdAt).toLocaleDateString(
                          "en-GB"
                        )}
                      </td>

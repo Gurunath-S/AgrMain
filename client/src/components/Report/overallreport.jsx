@@ -64,8 +64,11 @@ const OverallReportNew = () => {
 
       const queryParams = (start && end) ? `?startDate=${start}&endDate=${end}` : "";
       
+      // NOTE: Customers are always fetched WITHOUT a date filter so the
+      // Customer Bill Balances table always shows every customer's running
+      // balance, regardless of the selected date range.
       const [customersRes, billsRes, stockRes, entriesRes, purchaseStockRes] = await Promise.all([
-        fetch(`${BACKEND_SERVER_URL}/api/customers${queryParams}`),
+        fetch(`${BACKEND_SERVER_URL}/api/customers`),          // always all customers
         fetch(`${BACKEND_SERVER_URL}/api/bill${queryParams}`),
         fetch(`${BACKEND_SERVER_URL}/api/productStock${queryParams}`),
         fetch(`${BACKEND_SERVER_URL}/api/entries${queryParams}`),
@@ -107,6 +110,7 @@ const OverallReportNew = () => {
         activeCustomersCount = activeCustomerIds.size;
       } else {
         // No filter: show absolute current running balances for all time
+        // customersData always has ALL customers (fetched without date filter)
         pureBalanceTotal = customersData.reduce(
           (sum, c) => sum + (parseFloat(c.customerBillBalance?.balance) || 0),
           0
@@ -115,7 +119,7 @@ const OverallReportNew = () => {
           (sum, c) => sum + (parseFloat(c.customerBillBalance?.hallMarkBal) || 0),
           0
         );
-        activeCustomersCount = customersData.length;
+        activeCustomersCount = customersData.length; // total registered customers
       }
 
       // Option A: The table always shows ALL customers and their all-time overall running balance

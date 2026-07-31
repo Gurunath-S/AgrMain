@@ -1,0 +1,62 @@
+{
+  "name": "agr-jewellery-desktop",
+  "version": "1.0.0",
+  "description": "AGR Jewellery Management Desktop Application",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev:server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix client run dev",
+    "dev": "concurrently -k \"npm --prefix server run dev\" \"npm --prefix client run dev\" \"wait-on http://localhost:3000 && electron .\"",
+    "build:client": "npm --prefix client run build",
+    "dist": "npm run build:client && electron-builder",
+    "dist:win": "npm run build:client && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win"
+  },
+  "build": {
+    "appId": "com.agr.jewellery.desktop",
+    "productName": "AGR Jewellery Management",
+    "icon": "client/public/app-logo.png",
+    "directories": {
+      "output": "release"
+    },
+    "includeSubNodeModules": true,
+    "files": [
+      "electron/**/*",
+      "client/dist/**/*",
+      "server/**/*"
+    ],
+    "linux": {
+      "target": [
+        "AppImage",
+        "dir",
+        "tar.gz"
+      ],
+      "icon": "client/public/app-logo.png",
+      "category": "Office",
+      "maintainer": "AGR Tech <support@agr.com>"
+    },
+    "win": {
+      "target": [
+        "zip",
+        "dir"
+      ],
+      "asar": false,
+      "forceCodeSigning": false
+    }
+  },
+  "keywords": [
+    "electron",
+    "jewellery",
+    "management",
+    "agr"
+  ],
+  "author": "AGR Tech <support@agr.com>",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "cross-env": "^7.0.3",
+    "electron": "^34.2.0",
+    "electron-builder": "^25.1.8",
+    "wait-on": "^8.0.2"
+  }
+}
