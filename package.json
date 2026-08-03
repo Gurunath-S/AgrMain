@@ -19,17 +19,20 @@
     "directories": {
       "output": "release"
     },
-    "includeSubNodeModules": true,
     "files": [
       "electron/**/*",
-      "client/dist/**/*",
-      "server/**/*"
+      "client/dist/**/*"
+    ],
+    "extraFiles": [
+      {
+        "from": "server",
+        "to": "server",
+        "filter": ["**/*", "!**/*.log", "!backup.sql", "!out.txt", "!err.txt", "!output.txt"]
+      }
     ],
     "linux": {
       "target": [
-        "AppImage",
-        "dir",
-        "tar.gz"
+        "AppImage"
       ],
       "icon": "client/public/app-logo.png",
       "category": "Office",

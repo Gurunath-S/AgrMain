@@ -28,9 +28,14 @@ async function startExpressServer() {
     return;
   }
 
-  let serverDir = path.join(__dirname, "../server");
+  // In dev: server is at ../server relative to electron/main.js
+  // When packaged with extraFiles: server is at <appRoot>/server (alongside resources/)
+  let serverDir;
   if (app.isPackaged) {
-    serverDir = serverDir.replace("app.asar", "app.asar.unpacked");
+    // process.resourcesPath = <appRoot>/resources — go up one level to reach <appRoot>/server
+    serverDir = path.join(process.resourcesPath, "../server");
+  } else {
+    serverDir = path.join(__dirname, "../server");
   }
   const serverScript = path.join(serverDir, "Server.js");
 
@@ -38,20 +43,22 @@ async function startExpressServer() {
 
   const nodeModulesPath = path.join(serverDir, "node_modules");
 
+  // When packaged as AppImage, process.execPath = Electron binary.
+  // Setting ELECTRON_RUN_AS_NODE=1 makes it behave like Node.js.
+  // In dev, just use the system "node" binary.
   const nodeExec = app.isPackaged ? process.execPath : "node";
-  const spawnEnv = app.isPackaged
-    ? {
-        ...process.env,
-        PORT: SERVER_PORT,
-        ELECTRON_RUN_AS_NODE: "1",
-        NODE_PATH: `${nodeModulesPath}:${process.env.NODE_PATH || ""}`
-      }
-    : { ...process.env, PORT: SERVER_PORT };
+  const spawnEnv = {
+    ...process.env,
+    PORT: String(SERVER_PORT),
+    NODE_PATH: `${nodeModulesPath}${process.env.NODE_PATH ? `:${process.env.NODE_PATH}` : ""}`,
+    ...(app.isPackaged ? { ELECTRON_RUN_AS_NODE: "1" } : {}),
+  };
 
   serverProcess = spawn(nodeExec, [serverScript], {
     cwd: serverDir,
     env: spawnEnv,
-    stdio: ["ignore", "pipe", "pipe"]
+    stdio: ["ignore", "pipe", "pipe"],
+    detached: false,
   });
 
   serverProcess.stdout.on("data", (data) => {
@@ -77,9 +84,31 @@ function stopExpressServer() {
   }
 }
 
+// Poll until server is ready (up to 15 seconds)
+function waitForServer(port = SERVER_PORT, retries = 30, intervalMs = 500) {
+  return new Promise((resolve) => {
+    let attempts = 0;
+    const check = () => {
+      checkServerHealth(port).then((isUp) => {
+        if (isUp) {
+          console.log(`[Electron Main] Server is ready on port ${port}`);
+          resolve(true);
+        } else if (++attempts < retries) {
+          setTimeout(check, intervalMs);
+        } else {
+          console.error(`[Electron Main] Server did not start after ${retries} attempts`);
+          resolve(false);
+        }
+      });
+    };
+    check();
+  });
+}
+
 // Create Main Application Window
 async function createWindow() {
   await startExpressServer();
+  await waitForServer();
 
   const fs = require("fs");
   let iconPath = path.join(__dirname, "../client/public/app-logo.png");
