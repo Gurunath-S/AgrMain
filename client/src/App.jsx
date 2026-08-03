@@ -33,9 +33,11 @@ import CustomerRepairStockList from "./components/CustomerReturn&Repair/Customer
 import Jewelstockreport from "./components/Report/jewelstockreport";
 import BillView from "./components/Billing/BillView";
 import BalanceStatement from "./components/Reports/BalanceStatement";
+import UpdateBadge from "./components/UpdateBadge";
 
 function App() {
   return (
+    <>
     <HashRouter>
       <Routes>
         <Route path="/" element={<Home />} />
@@ -264,6 +266,9 @@ function App() {
         <Route path="/master/*" element={<Master />} />
       </Routes>
     </HashRouter>
+    {/* Floating update badge — only visible in Electron when user deferred a major/minor update */}
+    <UpdateBadge />
+    </>
   );
 }
 

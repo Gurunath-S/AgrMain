@@ -1,10 +1,12 @@
-const { app, BrowserWindow, ipcMain, shell } = require("electron");
+const { app, BrowserWindow, ipcMain, shell, dialog, Notification } = require("electron");
 const path = require("path");
 const { spawn } = require("child_process");
 const http = require("http");
+const { autoUpdater } = require("electron-updater");
 
 let mainWindow = null;
 let serverProcess = null;
+let updateReadyToInstall = false; // tracks if update downloaded and ready
 
 const SERVER_PORT = process.env.PORT || 5002;
 const CLIENT_DEV_URL = "http://localhost:3000";
@@ -200,11 +202,95 @@ function registerIpcHandlers() {
   ipcMain.handle("check-server-health", async () => {
     return await checkServerHealth();
   });
+
+  // Triggered when user clicks "Install" on the UpdateBadge in the React UI
+  ipcMain.on("install-update", () => {
+    if (updateReadyToInstall) {
+      autoUpdater.quitAndInstall(false, true);
+    } else {
+      // Deferred but not yet downloaded — start download now
+      autoUpdater.downloadUpdate();
+    }
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AUTO UPDATER
+// Only active in production (packaged) builds — never fires in dev mode.
+// Strategy:
+//   PATCH (1.0.0→1.0.1): silent download, OS notification when ready
+//   MINOR/MAJOR (1.x or 2.x): dialog → Update Now or Later
+//   Later: sends IPC to renderer so UpdateBadge appears in the UI
+// ─────────────────────────────────────────────────────────────────────────────
+function setupAutoUpdater() {
+  if (!app.isPackaged) return;
+
+  autoUpdater.autoDownload = false;       // we decide when to download
+  autoUpdater.autoInstallOnAppQuit = true; // install silently on quit
+
+  autoUpdater.checkForUpdates().catch((err) => {
+    console.error("[AutoUpdater] Check failed:", err?.message);
+  });
+
+  autoUpdater.on("update-available", (info) => {
+    const newVersion = info.version;
+    const currentVersion = app.getVersion();
+    const [newMajor, newMinor] = newVersion.split(".").map(Number);
+    const [curMajor, curMinor] = currentVersion.split(".").map(Number);
+    const isSilentPatch = newMajor === curMajor && newMinor === curMinor;
+
+    if (isSilentPatch) {
+      // PATCH → silent download, no dialog
+      console.log(`[AutoUpdater] Patch v${newVersion} found — downloading silently`);
+      autoUpdater.downloadUpdate();
+    } else {
+      // MINOR or MAJOR → ask the user
+      const response = dialog.showMessageBoxSync(mainWindow, {
+        type: "info",
+        title: "Update Available — AGR Jewellery",
+        message: `Version v${newVersion} is now available`,
+        detail:
+          "A new version has been released with improvements.\n" +
+          "Your data will not be affected by the update.\n\n" +
+          "Would you like to download and install it now?",
+        buttons: ["Update Now", "Later"],
+        defaultId: 0,
+        cancelId: 1,
+      });
+
+      if (response === 0) {
+        autoUpdater.downloadUpdate();
+      } else {
+        // User chose Later → show the persistent UpdateBadge in the UI
+        console.log("[AutoUpdater] User deferred — sending update-deferred to renderer");
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send("update-deferred", newVersion);
+        }
+      }
+    }
+  });
+
+  autoUpdater.on("update-downloaded", (info) => {
+    updateReadyToInstall = true;
+    console.log(`[AutoUpdater] v${info.version} downloaded — ready to install on quit`);
+    // Native OS notification (Windows toast / Linux notify)
+    if (Notification.isSupported()) {
+      new Notification({
+        title: "AGR Jewellery — Update Ready",
+        body: `v${info.version} downloaded. Restart the app to apply the update.`,
+      }).show();
+    }
+  });
+
+  autoUpdater.on("error", (err) => {
+    console.error("[AutoUpdater] Error:", err?.message);
+  });
 }
 
 // App Lifecycle Events
 app.whenReady().then(() => {
   registerIpcHandlers();
+  setupAutoUpdater();
   createWindow();
 
   app.on("activate", () => {

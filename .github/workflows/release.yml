@@ -1,0 +1,66 @@
+name: Build and Release
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TRIGGER: Only runs when you push a version tag like v1.0.1, v1.1.0, v2.0.0
+# Regular code pushes to main do NOT trigger this — only `git push --tags`
+# ─────────────────────────────────────────────────────────────────────────────
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    name: Build & Publish (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        include:
+          # Windows build runs on a Windows cloud runner
+          - os: windows-latest
+            args: "--win"
+          # Linux build runs on an Ubuntu cloud runner
+          - os: ubuntu-latest
+            args: "--linux"
+
+    steps:
+      # Step 1: Download your repository code onto the cloud runner
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Install Node.js 20
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      # Step 3: Install root dependencies (electron, electron-builder, etc.)
+      - name: Install root dependencies
+        run: npm ci
+
+      # Step 4: Install client (React/Vite) dependencies
+      - name: Install client dependencies
+        run: npm ci
+        working-directory: client
+
+      # Step 5: Install server (Express/Prisma) dependencies
+      - name: Install server dependencies
+        run: npm ci
+        working-directory: server
+
+      # Step 6: Build the React frontend into client/dist
+      - name: Build React client
+        run: npm run build
+        working-directory: client
+
+      # Step 7: Package the Electron app and publish to GitHub Releases
+      # GITHUB_TOKEN is automatically provided by GitHub Actions — no setup needed
+      # --publish always: always upload artifacts as a release (even if the release already exists)
+      - name: Build and publish Electron app
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Disable Windows code-signing (no certificate needed)
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+        run: npx electron-builder ${{ matrix.args }} --publish always
