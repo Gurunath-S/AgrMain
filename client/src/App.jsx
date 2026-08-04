@@ -1,4 +1,3 @@
-
 import React from "react";
 import { HashRouter, Routes, Route, useLocation } from "react-router-dom";
 import Home from "./components/Home/Home";
@@ -34,10 +33,23 @@ import Jewelstockreport from "./components/Report/jewelstockreport";
 import BillView from "./components/Billing/BillView";
 import BalanceStatement from "./components/Reports/BalanceStatement";
 import UpdateBadge from "./components/UpdateBadge";
+import TitleBar from "./components/TitleBar/TitleBar";
+
+const TITLEBAR_HEIGHT = 38; // keep in sync with TitleBar.jsx
 
 function App() {
+  const isElectron = !!window.electronAPI?.isElectron;
+
   return (
     <>
+      {/* Modern custom titlebar — only shown in packaged Electron window */}
+      <TitleBar />
+
+      {/* Push all content below the titlebar when in Electron */}
+      {isElectron && (
+        <style>{`body { padding-top: ${TITLEBAR_HEIGHT}px; }`}</style>
+      )}
+
     <HashRouter>
       <Routes>
         <Route path="/" element={<Home />} />

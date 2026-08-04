@@ -128,7 +128,9 @@ async function createWindow() {
     minHeight: 700,
     title: "AGR Jewellery Management System",
     icon: iconPath,
-    autoHideMenuBar: false,
+    frame: false,
+    titleBarStyle: "hidden",
+    autoHideMenuBar: true,
     show: false,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
@@ -197,6 +199,10 @@ function registerIpcHandlers() {
 
   ipcMain.handle("get-app-version", () => {
     return app.getVersion();
+  });
+
+  ipcMain.handle("is-maximized", () => {
+    return mainWindow ? mainWindow.isMaximized() : false;
   });
 
   ipcMain.handle("check-server-health", async () => {

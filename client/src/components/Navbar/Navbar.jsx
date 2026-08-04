@@ -584,8 +584,10 @@ const navContainer = {
   alignItems: "center",
   padding: "0 24px",
   color: "#fff",
-  position: "relative",
+  position: "sticky",
+  top: 0,
   height: "64px",
+  zIndex: 1000,
   boxShadow: "0 2px 10px rgba(0, 0, 0, 0.1)",
 };
 

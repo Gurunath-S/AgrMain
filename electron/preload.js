@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   maximizeWindow: () => ipcRenderer.send("window-maximize"),
   closeWindow: () => ipcRenderer.send("window-close"),
   getAppVersion: () => ipcRenderer.invoke("get-app-version"),
+  isMaximized: () => ipcRenderer.invoke("is-maximized"),
   checkServerHealth: () => ipcRenderer.invoke("check-server-health"),
 
   // Auto-update: main process fires this when user clicked "Later" on the dialog.
