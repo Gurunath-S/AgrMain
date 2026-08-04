@@ -4,6 +4,16 @@ const { spawn } = require("child_process");
 const http = require("http");
 const { autoUpdater } = require("electron-updater");
 
+// Detect if running inside Wine/Proton on Linux.
+// In Wine, process.platform reports 'win32' AND Wine-specific env vars are present.
+// The server CANNOT spawn inside Wine (Linux Prisma .so binaries won't load).
+// Instead, the external launcher script starts the server natively on Linux.
+const isWine = process.platform === "win32" && Boolean(
+  process.env.WINEPREFIX ||
+  process.env.WINELOADERNOEXEC ||
+  process.env.PROTON_LOG
+);
+
 let mainWindow = null;
 let serverProcess = null;
 let updateReadyToInstall = false; // tracks if update downloaded and ready
@@ -27,6 +37,14 @@ async function startExpressServer() {
   const isRunning = await checkServerHealth();
   if (isRunning) {
     console.log(`[Electron Main] Express backend is already running on port ${SERVER_PORT}`);
+    return;
+  }
+
+  // In Wine: the Prisma native .so binary cannot load inside Wine.
+  // The AGR launcher script starts the server natively on Linux before launching this exe.
+  // So here we just return — waitForServer() will poll until the external server is ready.
+  if (isWine) {
+    console.log("[Electron Main] Running in Wine — skipping server spawn (server started by launcher).");
     return;
   }
 
@@ -132,11 +150,16 @@ async function createWindow() {
     titleBarStyle: "hidden",
     autoHideMenuBar: true,
     show: false,
+    // backgroundColor prevents Wine from treating the frameless window as fully
+    // transparent, which causes flickering/repainting issues on window focus changes.
+    backgroundColor: "#0f0f1a",
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
       nodeIntegration: false,
-      webSecurity: true
+      webSecurity: true,
+      // Prevent throttling when window loses focus (reduces flickering in Wine)
+      backgroundThrottling: false,
     }
   });
 
