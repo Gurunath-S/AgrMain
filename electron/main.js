@@ -127,9 +127,6 @@ function waitForServer(port = SERVER_PORT, retries = 30, intervalMs = 500) {
 
 // Create Main Application Window
 async function createWindow() {
-  await startExpressServer();
-  await waitForServer();
-
   const fs = require("fs");
   let iconPath = path.join(__dirname, "../client/public/app-logo.png");
   if (app.isPackaged) {
@@ -150,15 +147,12 @@ async function createWindow() {
     titleBarStyle: "hidden",
     autoHideMenuBar: true,
     show: false,
-    // backgroundColor prevents Wine from treating the frameless window as fully
-    // transparent, which causes flickering/repainting issues on window focus changes.
     backgroundColor: "#0f0f1a",
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
       nodeIntegration: false,
       webSecurity: true,
-      // Prevent throttling when window loses focus (reduces flickering in Wine)
       backgroundThrottling: false,
     }
   });
@@ -176,7 +170,6 @@ async function createWindow() {
     mainWindow.webContents.openDevTools({ mode: "detach" });
   } else {
     const distIndexPath = path.join(__dirname, "../client/dist/index.html");
-    const fs = require("fs");
     if (fs.existsSync(distIndexPath)) {
       console.log(`[Electron Main] Loading production file: ${distIndexPath}`);
       mainWindow.loadFile(distIndexPath);
@@ -185,6 +178,9 @@ async function createWindow() {
       mainWindow.loadURL(CLIENT_DEV_URL);
     }
   }
+
+  // Start Express backend in parallel
+  startExpressServer().then(() => waitForServer());
 
   // Handle external links opening in user's browser
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
