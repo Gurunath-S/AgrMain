@@ -22,6 +22,7 @@
     "directories": {
       "output": "release"
     },
+    "npmRebuild": false,
     "files": [
       "electron/**/*",
       "client/dist/**/*"
@@ -36,7 +37,12 @@
           "!backup.sql",
           "!out.txt",
           "!err.txt",
-          "!output.txt"
+          "!output.txt",
+          "!node_modules/.cache/**/*",
+          "!node_modules/**/*.map",
+          "!node_modules/**/*.md",
+          "!node_modules/**/test/**/*",
+          "!node_modules/**/tests/**/*"
         ]
       }
     ],
