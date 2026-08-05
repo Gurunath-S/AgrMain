@@ -132,16 +132,30 @@ async function startExpressServer() {
     detached: false,
   });
 
+  const logFilePath = path.join(app.getPath("userData"), "server.log");
+  console.log(`[Electron Main] Writing Express server logs to: ${logFilePath}`);
+  const logStream = fs.createWriteStream(logFilePath, { flags: "w" });
+
   serverProcess.stdout.on("data", (data) => {
-    console.log(`[Express Backend]: ${data.toString().trim()}`);
+    const text = data.toString().trim();
+    console.log(`[Express Backend]: ${text}`);
+    logStream.write(`[STDOUT] ${text}\n`);
   });
 
   serverProcess.stderr.on("data", (data) => {
-    console.error(`[Express Backend Error]: ${data.toString().trim()}`);
+    const text = data.toString().trim();
+    console.error(`[Express Backend Error]: ${text}`);
+    logStream.write(`[STDERR] ${text}\n`);
+  });
+
+  serverProcess.on("error", (err) => {
+    console.error("[Electron Main] Express server failed to start:", err);
+    logStream.write(`[SPAWN ERROR] ${err.message}\n`);
   });
 
   serverProcess.on("close", (code) => {
     console.log(`[Electron Main] Express server process exited with code ${code}`);
+    logStream.write(`[EXIT] Process exited with code ${code}\n`);
     serverProcess = null;
   });
 }

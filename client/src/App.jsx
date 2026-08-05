@@ -45,7 +45,11 @@ function App() {
 
   useEffect(() => {
     let intervalId;
+    let attempts = 0;
+    const maxAttempts = 5;
+
     const checkConnection = async () => {
+      attempts++;
       try {
         const response = await fetch("http://localhost:5002/api/setup/status");
         const data = await response.json();
@@ -56,16 +60,21 @@ function App() {
         } else {
           setDbConnected(false);
           setChecking(false);
+          clearInterval(intervalId);
         }
       } catch (err) {
-        // Backend is offline / starting up
-        console.log("Waiting for backend server to respond...");
+        console.log(`[App] Waiting for backend server to respond (attempt ${attempts}/${maxAttempts})...`);
+        if (attempts >= maxAttempts) {
+          console.warn("[App] Backend server did not respond after max attempts. Redirecting to setup wizard.");
+          setDbConnected(false);
+          setChecking(false);
+          clearInterval(intervalId);
+        }
       }
     };
 
     checkConnection();
-    // Poll every 3 seconds to see if server/db comes online
-    intervalId = setInterval(checkConnection, 3000);
+    intervalId = setInterval(checkConnection, 1500);
 
     return () => clearInterval(intervalId);
   }, []);
