@@ -50,7 +50,6 @@
     },
     "win": {
       "target": [
-        "nsis",
         "portable"
       ],
       "icon": "client/public/app-logo.ico",
