@@ -1,6 +1,6 @@
 {
   "name": "agr-jewellery-desktop",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "AGR Jewellery Management Desktop Application",
   "main": "electron/main.js",
   "scripts": {
@@ -52,7 +52,9 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "icon": "client/public/app-logo.ico",
