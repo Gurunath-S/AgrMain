@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { HashRouter, Routes, Route, useLocation } from "react-router-dom";
 import Home from "./components/Home/Home";
+import DatabaseSetup from "./components/Setup/DatabaseSetup";
 import Customer from "./components/Customer/Customer";
 import Goldsmith from "./components/Goldsmith/Goldsmith";
 import Billing from "./components/Billing/Billing";
@@ -39,6 +40,36 @@ const TITLEBAR_HEIGHT = 38; // keep in sync with TitleBar.jsx
 
 function App() {
   const isElectron = !!window.electronAPI?.isElectron;
+  const [dbConnected, setDbConnected] = useState(null);
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    let intervalId;
+    const checkConnection = async () => {
+      try {
+        const response = await fetch("http://localhost:5002/api/setup/status");
+        const data = await response.json();
+        if (data.connected) {
+          setDbConnected(true);
+          setChecking(false);
+          clearInterval(intervalId);
+        } else {
+          setDbConnected(false);
+          setChecking(false);
+        }
+      } catch (err) {
+        // Backend is offline / starting up
+        setDbConnected(false);
+        setChecking(false);
+      }
+    };
+
+    checkConnection();
+    // Poll every 3 seconds to see if server/db comes online
+    intervalId = setInterval(checkConnection, 3000);
+
+    return () => clearInterval(intervalId);
+  }, []);
 
   return (
     <>
@@ -57,7 +88,24 @@ function App() {
         `}</style>
       )}
 
-    <HashRouter>
+      {checking ? (
+        <div style={{
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "calc(100vh - var(--titlebar-height, 0px))",
+          backgroundColor: "#0d0e12",
+          color: "#fff",
+          fontFamily: "'Montserrat', sans-serif"
+        }}>
+          <h2 style={{ color: "#d4af37", letterSpacing: "2px", fontFamily: "'Cormorant Garamond', serif", fontSize: "2rem" }}>AGR JEWELLERY</h2>
+          <p style={{ color: "#94a3b8", fontSize: "0.9rem", marginTop: "10px" }}>Connecting to backend services, please wait...</p>
+        </div>
+      ) : !dbConnected ? (
+        <DatabaseSetup />
+      ) : (
+        <HashRouter>
       <Routes>
         <Route path="/" element={<Home />} />
 
@@ -285,6 +333,7 @@ function App() {
         <Route path="/master/*" element={<Master />} />
       </Routes>
     </HashRouter>
+    )}
     {/* Floating update badge — only visible in Electron when user deferred a major/minor update */}
     <UpdateBadge />
     </>

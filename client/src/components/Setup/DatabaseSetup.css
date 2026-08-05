@@ -1,0 +1,378 @@
+/* DatabaseSetup.css */
+
+.setup-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #0d0e12;
+  font-family: 'Montserrat', 'Inter', sans-serif;
+  color: #e2e8f0;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Animated Background Glow */
+.setup-background-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(212, 175, 55, 0.15) 0%, rgba(99, 102, 241, 0.05) 50%, transparent 100%);
+  filter: blur(80px);
+  z-index: 1;
+  pointer-events: none;
+  animation: glowPulse 10s infinite alternate;
+}
+
+@keyframes glowPulse {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate(-45%, -55%) scale(1.2);
+    opacity: 1;
+  }
+}
+
+/* Glassmorphism Setup Card */
+.setup-card {
+  width: 100%;
+  max-width: 600px;
+  background: rgba(30, 41, 59, 0.45);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 40px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  z-index: 2;
+  text-align: center;
+}
+
+/* Header styling */
+.setup-header {
+  margin-bottom: 30px;
+}
+
+.setup-logo {
+  height: 70px;
+  margin-bottom: 15px;
+  filter: drop-shadow(0 0 10px rgba(212, 175, 55, 0.3));
+}
+
+.setup-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 2rem;
+  letter-spacing: 2px;
+  color: #d4af37;
+  margin: 0;
+  font-weight: 600;
+}
+
+.setup-subtitle {
+  font-size: 0.9rem;
+  color: #94a3b8;
+  margin-top: 5px;
+}
+
+/* Step Indicator */
+.setup-steps {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 40px;
+}
+
+.step-dot {
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 0.95rem;
+  color: #64748b;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.step-dot.active {
+  background: #d4af37;
+  border-color: #d4af37;
+  color: #0d0e12;
+  box-shadow: 0 0 15px rgba(212, 175, 55, 0.4);
+}
+
+.step-line {
+  height: 2px;
+  width: 60px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Step Content Animations */
+.step-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.step-content h2 {
+  font-size: 1.35rem;
+  font-weight: 500;
+  color: #fff;
+  margin-bottom: 10px;
+}
+
+.step-desc {
+  font-size: 0.9rem;
+  color: #94a3b8;
+  line-height: 1.5;
+  margin-bottom: 30px;
+}
+
+.fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Database Choice Options */
+.db-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  width: 100%;
+  margin-bottom: 35px;
+}
+
+.db-option-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 25px 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.db-option-card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(212, 175, 55, 0.3);
+}
+
+.db-option-card.selected {
+  background: rgba(212, 175, 55, 0.08);
+  border-color: #d4af37;
+  box-shadow: 0 0 15px rgba(212, 175, 55, 0.1);
+}
+
+.option-icon {
+  font-size: 2.2rem;
+  margin-bottom: 15px;
+}
+
+.db-option-card h3 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: #fff;
+}
+
+.db-option-card p {
+  font-size: 0.78rem;
+  color: #64748b;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.db-option-card.selected p {
+  color: #94a3b8;
+}
+
+/* Form Styles */
+.setup-form {
+  width: 100%;
+  margin-bottom: 25px;
+  text-align: left;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.form-row .form-group.small {
+  grid-template-columns: 1fr;
+}
+
+.form-group {
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  font-size: 0.82rem;
+  color: #94a3b8;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.form-group input {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 12px 16px;
+  color: #fff;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  font-family: inherit;
+}
+
+.form-group input:focus {
+  border-color: #d4af37;
+  box-shadow: 0 0 8px rgba(212, 175, 55, 0.2);
+  outline: none;
+}
+
+/* Alert Styling */
+.setup-alert {
+  width: 100%;
+  border-radius: 10px;
+  padding: 16px;
+  font-size: 0.85rem;
+  margin-bottom: 25px;
+  text-align: left;
+  line-height: 1.5;
+}
+
+.setup-alert.success {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #34d399;
+}
+
+.setup-alert.error {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #f87171;
+}
+
+.alert-help {
+  margin-top: 10px;
+  border-top: 1px solid rgba(239, 68, 68, 0.15);
+  padding-top: 10px;
+  font-size: 0.8rem;
+  color: #cbd5e1;
+}
+
+.alert-help ul {
+  margin: 5px 0 0 15px;
+  padding: 0;
+}
+
+.alert-help li {
+  margin-bottom: 4px;
+}
+
+/* Action Buttons */
+.setup-actions {
+  display: flex;
+  gap: 15px;
+  width: 100%;
+  margin-top: 10px;
+}
+
+.setup-btn {
+  padding: 12px 28px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: inherit;
+  border: none;
+}
+
+.setup-btn.primary {
+  background: #d4af37;
+  color: #0d0e12;
+  box-shadow: 0 4px 15px rgba(212, 175, 55, 0.2);
+}
+
+.setup-btn.primary:hover:not(:disabled) {
+  background: #f3c244;
+  box-shadow: 0 4px 20px rgba(212, 175, 55, 0.35);
+  transform: translateY(-1px);
+}
+
+.setup-btn.secondary {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+}
+
+.setup-btn.secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.setup-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Step 3 Logs Styling */
+.setup-logs {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 20px;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.82rem;
+  text-align: left;
+  height: 180px;
+  overflow-y: auto;
+  margin-bottom: 25px;
+}
+
+.log-line {
+  margin-bottom: 10px;
+  color: #38bdf8;
+  line-height: 1.4;
+}
+
+.log-line.loading::after {
+  content: "...";
+  animation: dots 1.5s steps(5, end) infinite;
+}
+
+.log-bullet {
+  color: #d4af37;
+}
+
+@keyframes dots {
+  0%, 20% { content: ""; }
+  40% { content: "."; }
+  60% { content: ".."; }
+  80%, 100% { content: "..."; }
+}

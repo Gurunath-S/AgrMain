@@ -10,6 +10,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getAppVersion: () => ipcRenderer.invoke("get-app-version"),
   isMaximized: () => ipcRenderer.invoke("is-maximized"),
   checkServerHealth: () => ipcRenderer.invoke("check-server-health"),
+  saveDbConfig: (config) => ipcRenderer.invoke("save-db-config", config),
+  getDbConfig: () => ipcRenderer.invoke("get-db-config"),
+  restartApp: () => ipcRenderer.send("restart-app"),
 
   // Auto-update: main process fires this when user clicked "Later" on the dialog.
   // `callback` receives the new version string e.g. "1.1.0"
