@@ -55,15 +55,18 @@
           "arch": ["x64"]
         }
       ],
+      "icon": "client/public/app-logo.ico",
       "asar": false,
       "forceCodeSigning": false
     },
     "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
+      "oneClick": true,
+      "perMachine": false,
       "deleteAppDataOnUninstall": false,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "installerIcon": "client/public/app-logo.ico",
+      "uninstallerIcon": "client/public/app-logo.ico"
     },
     "publish": {
       "provider": "github",

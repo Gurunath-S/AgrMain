@@ -5,7 +5,7 @@ import NotificationBell from "../Notification/Notification";
 import logo from "../../Assets/agrLogo.png";
 
 const Navbar = () => {
-
+  const isElectron = !!window.electronAPI?.isElectron;
   const navigate = useNavigate();
 
   const location = useLocation();
@@ -219,10 +219,12 @@ const Navbar = () => {
     <div style={navContainer}>
 
       <div style={navLeft}>
-        <div style={logoContainer}>
-          <img style={logoImg} src={logo} alt="Agrlogo"></img>
-          <span style={logoText}>AGR</span>
-        </div>
+        {!isElectron && (
+          <div style={logoContainer}>
+            <img style={logoImg} src={logo} alt="Agrlogo"></img>
+            <span style={logoText}>AGR</span>
+          </div>
+        )}
 
         {[
           "Master",

@@ -47,7 +47,14 @@ function App() {
 
       {/* Push all content below the titlebar when in Electron */}
       {isElectron && (
-        <style>{`body { padding-top: ${TITLEBAR_HEIGHT}px; }`}</style>
+        <style>{`
+          :root {
+            --titlebar-height: ${TITLEBAR_HEIGHT}px;
+          }
+          body {
+            padding-top: ${TITLEBAR_HEIGHT}px;
+          }
+        `}</style>
       )}
 
     <HashRouter>
