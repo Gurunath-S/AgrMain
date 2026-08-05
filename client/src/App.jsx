@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { HashRouter, Routes, Route, useLocation } from "react-router-dom";
 import Home from "./components/Home/Home";
-import DatabaseSetup from "./components/Setup/DatabaseSetup";
 import Customer from "./components/Customer/Customer";
 import Goldsmith from "./components/Goldsmith/Goldsmith";
 import Billing from "./components/Billing/Billing";
@@ -40,44 +39,6 @@ const TITLEBAR_HEIGHT = 38; // keep in sync with TitleBar.jsx
 
 function App() {
   const isElectron = !!window.electronAPI?.isElectron;
-  const [dbConnected, setDbConnected] = useState(null);
-  const [checking, setChecking] = useState(true);
-
-  useEffect(() => {
-    let intervalId;
-    let attempts = 0;
-    const maxAttempts = 10;
-
-    const checkConnection = async () => {
-      attempts++;
-      try {
-        const response = await fetch("http://localhost:5002/api/setup/status");
-        const data = await response.json();
-        if (data.connected) {
-          setDbConnected(true);
-          setChecking(false);
-          clearInterval(intervalId);
-        } else {
-          setDbConnected(false);
-          setChecking(false);
-          clearInterval(intervalId);
-        }
-      } catch (err) {
-        console.log(`[App] Waiting for backend server to respond (attempt ${attempts}/${maxAttempts})...`);
-        if (attempts >= maxAttempts) {
-          console.warn("[App] Backend server did not respond after max attempts. Redirecting to setup wizard.");
-          setDbConnected(false);
-          setChecking(false);
-          clearInterval(intervalId);
-        }
-      }
-    };
-
-    checkConnection();
-    intervalId = setInterval(checkConnection, 300);
-
-    return () => clearInterval(intervalId);
-  }, []);
 
   return (
     <>
@@ -96,24 +57,7 @@ function App() {
         `}</style>
       )}
 
-      {checking ? (
-        <div style={{
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          alignItems: "center",
-          minHeight: "calc(100vh - var(--titlebar-height, 0px))",
-          backgroundColor: "#faf7f0",
-          color: "#3e3729",
-          fontFamily: "'Montserrat', sans-serif"
-        }}>
-          <h2 style={{ color: "#b58d16", letterSpacing: "2px", fontFamily: "'Cormorant Garamond', serif", fontSize: "2rem" }}>AGR JEWELLERY</h2>
-          <p style={{ color: "#7c715b", fontSize: "0.9rem", marginTop: "10px" }}>Starting application...</p>
-        </div>
-      ) : !dbConnected ? (
-        <DatabaseSetup />
-      ) : (
-        <HashRouter>
+    <HashRouter>
       <Routes>
         <Route path="/" element={<Home />} />
 
@@ -341,7 +285,6 @@ function App() {
         <Route path="/master/*" element={<Master />} />
       </Routes>
     </HashRouter>
-    )}
     {/* Floating update badge — only visible in Electron when user deferred a major/minor update */}
     <UpdateBadge />
     </>

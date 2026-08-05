@@ -3,7 +3,6 @@ const path = require("path");
 const { spawn } = require("child_process");
 const http = require("http");
 const { autoUpdater } = require("electron-updater");
-const fs = require("fs");
 
 // Detect if running inside Wine/Proton on Linux.
 // In Wine, process.platform reports 'win32' AND Wine-specific env vars are present.
@@ -33,50 +32,6 @@ function checkServerHealth(port = SERVER_PORT) {
   });
 }
 
-function getDatabaseConfigPath() {
-  return path.join(app.getPath("userData"), "database.env");
-}
-
-function initializeDatabaseConfig(serverDir) {
-  const configPath = getDatabaseConfigPath();
-  if (!fs.existsSync(configPath)) {
-    try {
-      const parentDir = path.dirname(configPath);
-      if (!fs.existsSync(parentDir)) {
-        fs.mkdirSync(parentDir, { recursive: true });
-      }
-      // Try to read existing server/.env if available
-      const localEnvPath = path.join(serverDir, ".env");
-      if (fs.existsSync(localEnvPath)) {
-        fs.copyFileSync(localEnvPath, configPath);
-        console.log(`[Electron Main] Copied local server/.env to persistent path: ${configPath}`);
-      } else {
-        const defaultContent = 'DATABASE_URL="mysql://root:guruguruguru@127.0.0.1:3306/agr"\nPORT=5002\n';
-        fs.writeFileSync(configPath, defaultContent, "utf8");
-        console.log(`[Electron Main] Created default persistent database config: ${configPath}`);
-      }
-    } catch (err) {
-      console.error("[Electron Main] Failed to initialize database config file:", err);
-    }
-  }
-}
-
-function readDatabaseUrl() {
-  const configPath = getDatabaseConfigPath();
-  if (fs.existsSync(configPath)) {
-    try {
-      const content = fs.readFileSync(configPath, "utf8");
-      const match = content.match(/DATABASE_URL=["']?([^"'\r\n]+)["']?/);
-      if (match && match[1]) {
-        return match[1];
-      }
-    } catch (err) {
-      console.error("[Electron Main] Error reading database URL:", err);
-    }
-  }
-  return "mysql://root:guruguruguru@127.0.0.1:3306/agr"; // fallback
-}
-
 // Start Node.js Express server child process
 async function startExpressServer() {
   const isRunning = await checkServerHealth();
@@ -88,8 +43,8 @@ async function startExpressServer() {
   // In Wine: the Prisma native .so binary cannot load inside Wine.
   // The AGR launcher script starts the server natively on Linux before launching this exe.
   // So here we just return — waitForServer() will poll until the external server is ready.
-  if (isWine && !app.isPackaged) {
-    console.log("[Electron Main] Running in Wine in dev mode — skipping server spawn (assuming external server).");
+  if (isWine) {
+    console.log("[Electron Main] Running in Wine — skipping server spawn (server started by launcher).");
     return;
   }
 
@@ -104,10 +59,6 @@ async function startExpressServer() {
   }
   const serverScript = path.join(serverDir, "Server.js");
 
-  initializeDatabaseConfig(serverDir);
-  const configPath = getDatabaseConfigPath();
-  const customDatabaseUrl = readDatabaseUrl();
-
   console.log(`[Electron Main] Spawning Express backend server: ${serverScript}`);
 
   const nodeModulesPath = path.join(serverDir, "node_modules");
@@ -119,8 +70,6 @@ async function startExpressServer() {
   const spawnEnv = {
     ...process.env,
     PORT: String(SERVER_PORT),
-    ENV_FILE_PATH: configPath,
-    DATABASE_URL: customDatabaseUrl,
     NODE_PATH: `${nodeModulesPath}${process.env.NODE_PATH ? `:${process.env.NODE_PATH}` : ""}`,
     ...(app.isPackaged ? { ELECTRON_RUN_AS_NODE: "1" } : {}),
   };
@@ -132,30 +81,16 @@ async function startExpressServer() {
     detached: false,
   });
 
-  const logFilePath = path.join(app.getPath("userData"), "server.log");
-  console.log(`[Electron Main] Writing Express server logs to: ${logFilePath}`);
-  const logStream = fs.createWriteStream(logFilePath, { flags: "w" });
-
   serverProcess.stdout.on("data", (data) => {
-    const text = data.toString().trim();
-    console.log(`[Express Backend]: ${text}`);
-    logStream.write(`[STDOUT] ${text}\n`);
+    console.log(`[Express Backend]: ${data.toString().trim()}`);
   });
 
   serverProcess.stderr.on("data", (data) => {
-    const text = data.toString().trim();
-    console.error(`[Express Backend Error]: ${text}`);
-    logStream.write(`[STDERR] ${text}\n`);
-  });
-
-  serverProcess.on("error", (err) => {
-    console.error("[Electron Main] Express server failed to start:", err);
-    logStream.write(`[SPAWN ERROR] ${err.message}\n`);
+    console.error(`[Express Backend Error]: ${data.toString().trim()}`);
   });
 
   serverProcess.on("close", (code) => {
     console.log(`[Electron Main] Express server process exited with code ${code}`);
-    logStream.write(`[EXIT] Process exited with code ${code}\n`);
     serverProcess = null;
   });
 }
@@ -305,42 +240,6 @@ function registerIpcHandlers() {
       // Deferred but not yet downloaded — start download now
       autoUpdater.downloadUpdate();
     }
-  });
-
-  ipcMain.handle("get-db-config", () => {
-    const configPath = getDatabaseConfigPath();
-    if (fs.existsSync(configPath)) {
-      try {
-        return fs.readFileSync(configPath, "utf8");
-      } catch (err) {
-        console.error("Error reading database config:", err);
-      }
-    }
-    return "";
-  });
-
-  ipcMain.handle("save-db-config", (event, configString) => {
-    const configPath = getDatabaseConfigPath();
-    try {
-      const parentDir = path.dirname(configPath);
-      if (!fs.existsSync(parentDir)) {
-        fs.mkdirSync(parentDir, { recursive: true });
-      }
-      fs.writeFileSync(configPath, configString, "utf8");
-      console.log(`[Electron Main] Saved new database config to: ${configPath}`);
-      return { success: true };
-    } catch (err) {
-      console.error("Error saving database config:", err);
-      return { success: false, error: err.message };
-    }
-  });
-
-  ipcMain.on("restart-app", () => {
-    if (serverProcess) {
-      serverProcess.kill();
-    }
-    app.relaunch();
-    app.exit(0);
   });
 }
 
