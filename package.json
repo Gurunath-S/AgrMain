@@ -1,6 +1,6 @@
 {
   "name": "agr-jewellery-desktop",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "AGR Jewellery Management Desktop Application",
   "main": "electron/main.js",
   "scripts": {
