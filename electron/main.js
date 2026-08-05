@@ -88,8 +88,8 @@ async function startExpressServer() {
   // In Wine: the Prisma native .so binary cannot load inside Wine.
   // The AGR launcher script starts the server natively on Linux before launching this exe.
   // So here we just return — waitForServer() will poll until the external server is ready.
-  if (isWine) {
-    console.log("[Electron Main] Running in Wine — skipping server spawn (server started by launcher).");
+  if (isWine && !app.isPackaged) {
+    console.log("[Electron Main] Running in Wine in dev mode — skipping server spawn (assuming external server).");
     return;
   }
 

@@ -59,8 +59,7 @@ function App() {
         }
       } catch (err) {
         // Backend is offline / starting up
-        setDbConnected(false);
-        setChecking(false);
+        console.log("Waiting for backend server to respond...");
       }
     };
 
