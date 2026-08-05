@@ -46,7 +46,7 @@ function App() {
   useEffect(() => {
     let intervalId;
     let attempts = 0;
-    const maxAttempts = 5;
+    const maxAttempts = 10;
 
     const checkConnection = async () => {
       attempts++;
@@ -74,7 +74,7 @@ function App() {
     };
 
     checkConnection();
-    intervalId = setInterval(checkConnection, 1500);
+    intervalId = setInterval(checkConnection, 300);
 
     return () => clearInterval(intervalId);
   }, []);
@@ -103,12 +103,12 @@ function App() {
           justifyContent: "center",
           alignItems: "center",
           minHeight: "calc(100vh - var(--titlebar-height, 0px))",
-          backgroundColor: "#0d0e12",
-          color: "#fff",
+          backgroundColor: "#faf7f0",
+          color: "#3e3729",
           fontFamily: "'Montserrat', sans-serif"
         }}>
-          <h2 style={{ color: "#d4af37", letterSpacing: "2px", fontFamily: "'Cormorant Garamond', serif", fontSize: "2rem" }}>AGR JEWELLERY</h2>
-          <p style={{ color: "#94a3b8", fontSize: "0.9rem", marginTop: "10px" }}>Connecting to backend services, please wait...</p>
+          <h2 style={{ color: "#b58d16", letterSpacing: "2px", fontFamily: "'Cormorant Garamond', serif", fontSize: "2rem" }}>AGR JEWELLERY</h2>
+          <p style={{ color: "#7c715b", fontSize: "0.9rem", marginTop: "10px" }}>Starting application...</p>
         </div>
       ) : !dbConnected ? (
         <DatabaseSetup />
