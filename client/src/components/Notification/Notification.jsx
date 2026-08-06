@@ -279,8 +279,10 @@ const NotificationBell = () => {
             mt: 1.5,
             borderRadius: "12px",
             width: 420,
+            maxWidth: "calc(100vw - 32px)",
             boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.15)",
             overflow: "hidden",
+            zIndex: 10000,
           },
         }}
       >
