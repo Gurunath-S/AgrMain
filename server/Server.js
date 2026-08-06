@@ -41,15 +41,7 @@ const PORT = process.env.PORT || 5002;
 app.use(morgan("dev"));
 
 app.use(cors({
-  origin: [
-      "https://agrmain.onrender.com",
-    "https://agrmain.onrender.com/",
-    "http://localhost:3000",
-      "https://agrclientapp.onrender.com",
-    "https://agrclientapp.onrender.com/",
-      "https://agrclient.onrender.com",
-    "https://agrclient.onrender.com/"
-  ],
+  origin: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
