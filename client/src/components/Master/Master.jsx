@@ -46,6 +46,8 @@ const Master = () => {
     location.pathname.startsWith("/master/item-purchase-report");
 
   const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
     navigate("/");
   };
 
@@ -271,21 +273,26 @@ const navContainer = {
 const navLeft = {
   display: "flex",
   alignItems: "center",
-  gap: "8px",
+  gap: "6px",
   height: "100%",
+  flex: 1,
+  minWidth: 0,
+  whiteSpace: "nowrap",
 };
 
 const navButton = {
   cursor: "pointer",
-  fontSize: "1.05rem",
+  fontSize: "0.95rem",
   fontWeight: 600,
-  padding: "10px 18px",
+  padding: "8px 12px",
   height: "100%",
   display: "flex",
   alignItems: "center",
   backgroundColor: "transparent",
   border: "none",
   color: "#fff",
+  flexShrink: 0,
+  whiteSpace: "nowrap",
 };
 
 const logoutButton = {
@@ -293,12 +300,14 @@ const logoutButton = {
   border: "1px solid rgba(255,255,255,0.2)",
   color: "white",
   borderRadius: "6px",
-  padding: "10px 18px",
-  fontSize: "1rem",
+  padding: "8px 14px",
+  fontSize: "0.95rem",
   fontWeight: 600,
   cursor: "pointer",
   display: "flex",
   alignItems: "center",
+  flexShrink: 0,
+  marginLeft: "12px",
 };
 
 const dropdownMenuStyle = {

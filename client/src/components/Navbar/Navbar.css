@@ -1,0 +1,25 @@
+/* Responsive Navbar Styling */
+.navbar-nav-link {
+  white-space: nowrap !important;
+}
+
+@media (max-width: 1366px) {
+  .navbar-nav-link {
+    font-size: 0.86rem !important;
+    padding: 4px 6px !important;
+  }
+}
+
+@media (max-width: 1180px) {
+  .navbar-nav-link {
+    font-size: 0.78rem !important;
+    padding: 3px 4px !important;
+  }
+}
+
+@media (max-width: 1024px) {
+  .navbar-nav-link {
+    font-size: 0.72rem !important;
+    padding: 2px 3px !important;
+  }
+}

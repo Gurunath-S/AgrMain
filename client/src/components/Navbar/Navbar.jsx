@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { FiLogOut, FiChevronDown, FiChevronUp } from "react-icons/fi";
 import NotificationBell from "../Notification/Notification";
 import logo from "../../Assets/agrLogo.png";
+import "./Navbar.css";
 
 const Navbar = () => {
   const isElectron = !!window.electronAPI?.isElectron;
@@ -95,7 +96,8 @@ const Navbar = () => {
 
   const handleLogout = () => {
     localStorage.removeItem("token");
-    window.location.href = "/";
+    localStorage.removeItem("user");
+    navigate("/");
   };
 
   const handleLinkClick = (path) => {
@@ -450,7 +452,7 @@ const Navbar = () => {
             setTimeout(() => setShowReturn(false), 300);
           }}
         >
-          Customer Return & Repair{" "}
+          Return & Repair{" "}
           {showReturn ? <FiChevronUp size={16} /> : <FiChevronDown size={16} />}
           {showReturn && (
             <div
@@ -594,11 +596,12 @@ const navContainer = {
 };
 
 const logoContainer = {
-  marginRight: "20px",
+  marginRight: "16px",
   display: "flex",
   alignItems: "center",
   justifyContent: "start",
   gap: "10px",
+  flexShrink: 0,
 };
 const logoImg = {
   width: "100%",
@@ -618,17 +621,20 @@ const logoText = {
 const navLeft = {
   display: "flex",
   alignItems: "center",
-  gap: "8px",
+  gap: "4px",
   height: "100%",
   position: "relative",
+  flex: 1,
+  minWidth: 0,
+  whiteSpace: "nowrap",
 };
 
 const navLink = {
   cursor: "pointer",
-  fontSize: "1.05rem",
+  fontSize: "0.95rem",
   fontWeight: "600",
   textDecoration: "none",
-  padding: "8px 12px",
+  padding: "6px 10px",
   borderRadius: "6px",
   transition: "all 0.2s ease",
   height: "100%",
@@ -636,12 +642,15 @@ const navLink = {
   alignItems: "center",
   boxSizing: "border-box",
   flexShrink: 0,
+  whiteSpace: "nowrap",
 };
 
 const navRight = {
   display: "flex",
   alignItems: "center",
-  gap: "16px",
+  gap: "12px",
+  flexShrink: 0,
+  marginLeft: "12px",
 };
 
 const logoutButton = {
