@@ -104,8 +104,8 @@ function stopExpressServer() {
   }
 }
 
-// Poll until server is ready (up to 15 seconds)
-function waitForServer(port = SERVER_PORT, retries = 30, intervalMs = 500) {
+// Poll until server is ready (up to 15 seconds, checking every 150ms)
+function waitForServer(port = SERVER_PORT, retries = 100, intervalMs = 150) {
   return new Promise((resolve) => {
     let attempts = 0;
     const check = () => {
@@ -135,6 +135,10 @@ async function createWindow() {
       iconPath = prodIconPath;
     }
   }
+
+  // Ensure Express backend server is initializing/ready
+  await startExpressServer();
+  await waitForServer();
 
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -178,9 +182,6 @@ async function createWindow() {
       mainWindow.loadURL(CLIENT_DEV_URL);
     }
   }
-
-  // Start Express backend in parallel
-  startExpressServer().then(() => waitForServer());
 
   // Handle external links opening in user's browser
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
