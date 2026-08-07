@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain, shell, dialog, Notification } = require("el
 const path = require("path");
 const { spawn } = require("child_process");
 const http = require("http");
+const fs = require("fs");
 const { autoUpdater } = require("electron-updater");
 
 // Detect if running inside Wine/Proton on Linux.
@@ -63,6 +64,9 @@ async function startExpressServer() {
 
   const nodeModulesPath = path.join(serverDir, "node_modules");
 
+  // Fix path separator for Windows (semicolon) vs POSIX (colon)
+  const pathSeparator = process.platform === "win32" ? ";" : ":";
+
   // When packaged as AppImage, process.execPath = Electron binary.
   // Setting ELECTRON_RUN_AS_NODE=1 makes it behave like Node.js.
   // In dev, just use the system "node" binary.
@@ -70,9 +74,17 @@ async function startExpressServer() {
   const spawnEnv = {
     ...process.env,
     PORT: String(SERVER_PORT),
-    NODE_PATH: `${nodeModulesPath}${process.env.NODE_PATH ? `:${process.env.NODE_PATH}` : ""}`,
+    NODE_PATH: `${nodeModulesPath}${process.env.NODE_PATH ? `${pathSeparator}${process.env.NODE_PATH}` : ""}`,
     ...(app.isPackaged ? { ELECTRON_RUN_AS_NODE: "1" } : {}),
   };
+
+  // Set up log files in userData directory for production debugging
+  const logDir = app.getPath("userData");
+  const outLogPath = path.join(logDir, "backend_out.log");
+  const errLogPath = path.join(logDir, "backend_err.log");
+
+  console.log(`[Electron Main] Logging backend stdout to: ${outLogPath}`);
+  console.log(`[Electron Main] Logging backend stderr to: ${errLogPath}`);
 
   serverProcess = spawn(nodeExec, [serverScript], {
     cwd: serverDir,
@@ -82,11 +94,23 @@ async function startExpressServer() {
   });
 
   serverProcess.stdout.on("data", (data) => {
-    console.log(`[Express Backend]: ${data.toString().trim()}`);
+    const text = data.toString().trim();
+    console.log(`[Express Backend]: ${text}`);
+    try {
+      fs.appendFileSync(outLogPath, `[${new Date().toISOString()}] ${text}\n`);
+    } catch (e) {
+      console.error("[Electron Main] Failed to write to stdout log file", e);
+    }
   });
 
   serverProcess.stderr.on("data", (data) => {
-    console.error(`[Express Backend Error]: ${data.toString().trim()}`);
+    const text = data.toString().trim();
+    console.error(`[Express Backend Error]: ${text}`);
+    try {
+      fs.appendFileSync(errLogPath, `[${new Date().toISOString()}] ${text}\n`);
+    } catch (e) {
+      console.error("[Electron Main] Failed to write to stderr log file", e);
+    }
   });
 
   serverProcess.on("close", (code) => {
@@ -127,7 +151,6 @@ function waitForServer(port = SERVER_PORT, retries = 100, intervalMs = 150) {
 
 // Create Main Application Window
 async function createWindow() {
-  const fs = require("fs");
   let iconPath = path.join(__dirname, "../client/public/app-logo.png");
   if (app.isPackaged) {
     const prodIconPath = path.join(__dirname, "../client/dist/app-logo.png");
