@@ -18,7 +18,7 @@
   "build": {
     "appId": "com.agr.jewellery.desktop",
     "productName": "AGR Jewellery Management",
-    "icon": "client/public/app-logo.png",
+    "icon": "build/icon.png",
     "directories": {
       "output": "release"
     },
@@ -56,7 +56,7 @@
       "target": [
         "AppImage"
       ],
-      "icon": "client/public/app-logo.png",
+      "icon": "build/icon.png",
       "category": "Office",
       "maintainer": "AGR Tech <support@agr.com>"
     },
@@ -64,7 +64,7 @@
       "target": [
         "portable"
       ],
-      "icon": "client/public/app-logo.ico",
+      "icon": "build/icon.ico",
       "asar": false,
       "forceCodeSigning": false
     },
@@ -74,8 +74,8 @@
       "deleteAppDataOnUninstall": false,
       "createDesktopShortcut": "always",
       "createStartMenuShortcut": true,
-      "installerIcon": "client/public/app-logo.ico",
-      "uninstallerIcon": "client/public/app-logo.ico"
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico"
     },
     "publish": {
       "provider": "github",
