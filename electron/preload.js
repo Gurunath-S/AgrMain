@@ -22,4 +22,18 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   // Auto-update: trigger quit-and-install from the UpdateBadge component
   installUpdate: () => ipcRenderer.send("install-update"),
+
+  // Server and database status APIs
+  getServerStatus: () => ipcRenderer.invoke("get-server-status"),
+  getMigrationStatus: () => ipcRenderer.invoke("get-migration-status"),
+  onServerStatus: (callback) => {
+    const handler = (_event, status) => callback(status);
+    ipcRenderer.on("server-status", handler);
+    return () => ipcRenderer.removeListener("server-status", handler);
+  },
+  onMigrationStatus: (callback) => {
+    const handler = (_event, status) => callback(status);
+    ipcRenderer.on("migration-status", handler);
+    return () => ipcRenderer.removeListener("migration-status", handler);
+  },
 });

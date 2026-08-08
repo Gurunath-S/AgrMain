@@ -3,24 +3,306 @@ const path = require("path");
 const { spawn } = require("child_process");
 const http = require("http");
 const fs = require("fs");
+const crypto = require("crypto");
 const { autoUpdater } = require("electron-updater");
 
-// Detect if running inside Wine/Proton on Linux.
-// In Wine, process.platform reports 'win32' AND Wine-specific env vars are present.
-// The server CANNOT spawn inside Wine (Linux Prisma .so binaries won't load).
-// Instead, the external launcher script starts the server natively on Linux.
-const isWine = process.platform === "win32" && Boolean(
-  process.env.WINEPREFIX ||
-  process.env.WINELOADERNOEXEC ||
-  process.env.PROTON_LOG
-);
+// Single-instance lock to prevent port collisions and database corruption
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+  dialog.showErrorBox(
+    "Application Already Running",
+    "An instance of AGR Jewellery Management is already running.\n\nPlease close the existing application window before launching a new one."
+  );
+  app.quit();
+  process.exit(0);
+} else {
+  app.on("second-instance", () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
+  });
+}
 
 let mainWindow = null;
+let splashWindow = null;
 let serverProcess = null;
+let outLogStream = null;
+let errLogStream = null;
 let updateReadyToInstall = false; // tracks if update downloaded and ready
+let migrationPromise = null;
+let serverPromise = null;
+let serverStatus = "loading"; // 'loading', 'ready', 'failed'
+let migrationStatus = "loading"; // 'loading', 'ready', 'failed'
 
-const SERVER_PORT = process.env.PORT || 5002;
+function startInitialization() {
+  if (!migrationPromise) {
+    migrationStatus = "loading";
+    migrationPromise = runPrismaMigrations()
+      .then((success) => {
+        migrationStatus = success ? "ready" : "failed";
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send("migration-status", migrationStatus);
+        }
+        return success;
+      })
+      .catch((err) => {
+        console.error("[Electron Main] Error running Prisma migrations:", err);
+        migrationStatus = "failed";
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send("migration-status", "failed");
+        }
+        return false;
+      });
+  }
+
+  if (!serverPromise) {
+    serverStatus = "loading";
+    serverPromise = startExpressServer()
+      .then(() => waitForServer())
+      .then((ready) => {
+        serverStatus = ready ? "ready" : "failed";
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send("server-status", serverStatus);
+        }
+        return ready;
+      });
+  }
+}
+
+
+let SERVER_PORT = 5002;
 const CLIENT_DEV_URL = "http://localhost:3000";
+
+// Helper to parse and load key-value pairs from a .env file into process.env
+function loadEnvFile(filePath) {
+  try {
+    if (fs.existsSync(filePath)) {
+      console.log(`[Electron Main] Loading environment from: ${filePath}`);
+      const content = fs.readFileSync(filePath, "utf-8");
+      content.split(/\r?\n/).forEach((line) => {
+        const trimmed = line.trim();
+        if (trimmed && !trimmed.startsWith("#")) {
+          const index = trimmed.indexOf("=");
+          if (index !== -1) {
+            const key = trimmed.substring(0, index).trim();
+            let value = trimmed.substring(index + 1).trim();
+            if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+              value = value.substring(1, value.length - 1);
+            }
+            process.env[key] = value;
+          }
+        }
+      });
+    }
+  } catch (err) {
+    console.error(`[Electron Main] Error loading environment file ${filePath}:`, err);
+  }
+}
+
+// Ensures database.env exists in userData and loads it
+function initializeEnvironment() {
+  let serverDir;
+  if (app.isPackaged) {
+    serverDir = path.join(process.resourcesPath, "../server");
+  } else {
+    serverDir = path.join(__dirname, "../server");
+  }
+
+  const logDir = app.getPath("userData");
+  const dbEnvPath = path.join(logDir, "database.env");
+  const defaultEnvPath = path.join(serverDir, ".env");
+
+  // Ensure log directory exists
+  if (!fs.existsSync(logDir)) {
+    fs.mkdirSync(logDir, { recursive: true });
+  }
+
+  if (!fs.existsSync(dbEnvPath) && fs.existsSync(defaultEnvPath)) {
+    try {
+      fs.copyFileSync(defaultEnvPath, dbEnvPath);
+      console.log(`[Electron Main] Copied default .env template to: ${dbEnvPath}`);
+    } catch (e) {
+      console.error("[Electron Main] Failed to copy default env template:", e);
+    }
+  }
+
+  // Load environment variables from the user's custom database.env
+  loadEnvFile(dbEnvPath);
+
+  // Fall back to server/.env if database.env was not loaded/empty (or if not in userData)
+  if (!process.env.DATABASE_URL && fs.existsSync(defaultEnvPath)) {
+    console.log("[Electron Main] DATABASE_URL not set, falling back to server/.env");
+    loadEnvFile(defaultEnvPath);
+  }
+
+  if (process.env.PORT) {
+    SERVER_PORT = parseInt(process.env.PORT, 10);
+  }
+}
+
+// Helper to check if migrations can be skipped
+function shouldSkipMigrations() {
+  try {
+    const logDir = app.getPath("userData");
+    const statePath = path.join(logDir, "migration-state.json");
+    if (!fs.existsSync(statePath)) {
+      return false;
+    }
+    const state = JSON.parse(fs.readFileSync(statePath, "utf-8"));
+    const currentVersion = app.getVersion();
+    const currentDbUrl = process.env.DATABASE_URL || "";
+    const dbUrlHash = crypto.createHash("sha256").update(currentDbUrl).digest("hex");
+
+    if (state.lastVersion === currentVersion && state.lastDbUrlHash === dbUrlHash) {
+      console.log("[Electron Main] Skipping Prisma migrations as app version and database URL have not changed.");
+      return true;
+    }
+  } catch (err) {
+    console.error("[Electron Main] Error reading migration state:", err);
+  }
+  return false;
+}
+
+// Helper to save migration state on successful migration run
+function saveMigrationState() {
+  try {
+    const logDir = app.getPath("userData");
+    const statePath = path.join(logDir, "migration-state.json");
+    const currentVersion = app.getVersion();
+    const currentDbUrl = process.env.DATABASE_URL || "";
+    const dbUrlHash = crypto.createHash("sha256").update(currentDbUrl).digest("hex");
+
+    fs.writeFileSync(statePath, JSON.stringify({
+      lastVersion: currentVersion,
+      lastDbUrlHash: dbUrlHash
+    }, null, 2), "utf-8");
+    console.log("[Electron Main] Migration state saved successfully.");
+  } catch (err) {
+    console.error("[Electron Main] Error writing migration state:", err);
+  }
+}
+
+// Run Prisma Migrations before launching the server
+function runPrismaMigrations() {
+  return new Promise((resolve) => {
+    if (shouldSkipMigrations()) {
+      resolve(true);
+      return;
+    }
+
+    let serverDir;
+    if (app.isPackaged) {
+      serverDir = path.join(process.resourcesPath, "../server");
+    } else {
+      serverDir = path.join(__dirname, "../server");
+    }
+
+    const prismaCliPath = path.join(serverDir, "node_modules/prisma/build/index.js");
+    
+    if (!fs.existsSync(prismaCliPath)) {
+      console.warn(`[Electron Main] Prisma CLI not found at ${prismaCliPath}. Skipping migrations.`);
+      resolve(true); // Proceed anyway
+      return;
+    }
+
+    const nodeExec = app.isPackaged ? process.execPath : "node";
+    const pathSeparator = process.platform === "win32" ? ";" : ":";
+    const nodeModulesPath = path.join(serverDir, "node_modules");
+
+    const spawnEnv = {
+      ...process.env,
+      PORT: String(SERVER_PORT),
+      NODE_PATH: `${nodeModulesPath}${process.env.NODE_PATH ? `${pathSeparator}${process.env.NODE_PATH}` : ""}`,
+      ...(app.isPackaged ? { ELECTRON_RUN_AS_NODE: "1" } : {}),
+    };
+
+    const runDeploy = () => {
+      console.log("[Electron Main] Running Prisma migrate deploy...");
+      const migrationProcess = spawn(nodeExec, [prismaCliPath, "migrate", "deploy"], {
+        cwd: serverDir,
+        env: spawnEnv,
+        stdio: ["ignore", "pipe", "pipe"],
+        windowsHide: true,
+      });
+
+      let stdoutData = "";
+      let stderrData = "";
+
+      migrationProcess.stdout.on("data", (data) => {
+        stdoutData += data.toString();
+      });
+
+      migrationProcess.stderr.on("data", (data) => {
+        stderrData += data.toString();
+      });
+
+      migrationProcess.on("close", (code) => {
+        console.log(`[Electron Main] Prisma migration exited with code ${code}`);
+        if (code === 0) {
+          saveMigrationState();
+          resolve(true);
+        } else {
+          console.error(`[Electron Main] Migration stdout:\n${stdoutData}`);
+          console.error(`[Electron Main] Migration stderr:\n${stderrData}`);
+
+          // Check if error is P3005 (database not empty)
+          const hasP3005 = stdoutData.includes("P3005") || stderrData.includes("P3005");
+          if (hasP3005) {
+            console.log("[Electron Main] Database is not empty (P3005). Attempting to baseline by marking init migration as applied...");
+            runBaseline();
+          } else {
+            resolve(false);
+          }
+        }
+      });
+
+      migrationProcess.on("error", (err) => {
+        console.error("[Electron Main] Failed to spawn Prisma migration:", err);
+        resolve(false);
+      });
+    };
+
+    const runBaseline = () => {
+      const baselineProcess = spawn(nodeExec, [prismaCliPath, "migrate", "resolve", "--applied", "20260114095420_init"], {
+        cwd: serverDir,
+        env: spawnEnv,
+        stdio: ["ignore", "pipe", "pipe"],
+        windowsHide: true,
+      });
+
+      let stdoutData = "";
+      let stderrData = "";
+
+      baselineProcess.stdout.on("data", (data) => {
+        stdoutData += data.toString();
+      });
+
+      baselineProcess.stderr.on("data", (data) => {
+        stderrData += data.toString();
+      });
+
+      baselineProcess.on("close", (code) => {
+        console.log(`[Electron Main] Prisma baseline resolve exited with code ${code}`);
+        if (code === 0) {
+          console.log("[Electron Main] Initial migration resolved successfully. Retrying deploy...");
+          runDeploy(); // Retry deploy after marking baseline migration as applied
+        } else {
+          console.error(`[Electron Main] Baseline resolve stdout:\n${stdoutData}`);
+          console.error(`[Electron Main] Baseline resolve stderr:\n${stderrData}`);
+          resolve(false);
+        }
+      });
+
+      baselineProcess.on("error", (err) => {
+        console.error("[Electron Main] Failed to spawn Prisma baseline resolve:", err);
+        resolve(false);
+      });
+    };
+
+    runDeploy();
+  });
+}
 
 // Check if Express backend server is alive
 function checkServerHealth(port = SERVER_PORT) {
@@ -29,6 +311,10 @@ function checkServerHealth(port = SERVER_PORT) {
       resolve(res.statusCode === 200 || res.statusCode === 304 || res.statusCode === 404);
     });
     req.on("error", () => resolve(false));
+    req.setTimeout(1000, () => {
+      req.destroy();
+      resolve(false);
+    });
     req.end();
   });
 }
@@ -38,14 +324,6 @@ async function startExpressServer() {
   const isRunning = await checkServerHealth();
   if (isRunning) {
     console.log(`[Electron Main] Express backend is already running on port ${SERVER_PORT}`);
-    return;
-  }
-
-  // In Wine: the Prisma native .so binary cannot load inside Wine.
-  // The AGR launcher script starts the server natively on Linux before launching this exe.
-  // So here we just return — waitForServer() will poll until the external server is ready.
-  if (isWine) {
-    console.log("[Electron Main] Running in Wine — skipping server spawn (server started by launcher).");
     return;
   }
 
@@ -86,6 +364,16 @@ async function startExpressServer() {
   console.log(`[Electron Main] Logging backend stdout to: ${outLogPath}`);
   console.log(`[Electron Main] Logging backend stderr to: ${errLogPath}`);
 
+  // Create write streams for logging asynchronously (non-blocking)
+  try {
+    outLogStream = fs.createWriteStream(outLogPath, { flags: "a" });
+    errLogStream = fs.createWriteStream(errLogPath, { flags: "a" });
+    outLogStream.on("error", (err) => console.error("[Log Stream Error] outLogStream:", err));
+    errLogStream.on("error", (err) => console.error("[Log Stream Error] errLogStream:", err));
+  } catch (e) {
+    console.error("[Electron Main] Failed to create log write streams", e);
+  }
+
   serverProcess = spawn(nodeExec, [serverScript], {
     cwd: serverDir,
     env: spawnEnv,
@@ -96,20 +384,16 @@ async function startExpressServer() {
   serverProcess.stdout.on("data", (data) => {
     const text = data.toString().trim();
     console.log(`[Express Backend]: ${text}`);
-    try {
-      fs.appendFileSync(outLogPath, `[${new Date().toISOString()}] ${text}\n`);
-    } catch (e) {
-      console.error("[Electron Main] Failed to write to stdout log file", e);
+    if (outLogStream) {
+      outLogStream.write(`[${new Date().toISOString()}] ${text}\n`);
     }
   });
 
   serverProcess.stderr.on("data", (data) => {
     const text = data.toString().trim();
     console.error(`[Express Backend Error]: ${text}`);
-    try {
-      fs.appendFileSync(errLogPath, `[${new Date().toISOString()}] ${text}\n`);
-    } catch (e) {
-      console.error("[Electron Main] Failed to write to stderr log file", e);
+    if (errLogStream) {
+      errLogStream.write(`[${new Date().toISOString()}] ${text}\n`);
     }
   });
 
@@ -126,10 +410,18 @@ function stopExpressServer() {
     serverProcess.kill();
     serverProcess = null;
   }
+  if (outLogStream) {
+    outLogStream.end();
+    outLogStream = null;
+  }
+  if (errLogStream) {
+    errLogStream.end();
+    errLogStream = null;
+  }
 }
 
-// Poll until server is ready (up to 15 seconds, checking every 150ms)
-function waitForServer(port = SERVER_PORT, retries = 100, intervalMs = 150) {
+// Poll until server is ready (up to 15 seconds, checking every 80ms)
+function waitForServer(port = SERVER_PORT, retries = 180, intervalMs = 80) {
   return new Promise((resolve) => {
     let attempts = 0;
     const check = () => {
@@ -149,19 +441,44 @@ function waitForServer(port = SERVER_PORT, retries = 100, intervalMs = 150) {
   });
 }
 
-// Create Main Application Window
-async function createWindow() {
-  let iconPath = path.join(__dirname, "../client/public/app-logo.png");
-  if (app.isPackaged) {
-    const prodIconPath = path.join(__dirname, "../client/dist/app-logo.png");
-    if (fs.existsSync(prodIconPath)) {
-      iconPath = prodIconPath;
-    }
-  }
+// Create Splash Screen Window
+function createSplashWindow() {
+  const iconPath = app.isPackaged
+    ? path.join(__dirname, "../client/dist/app-logo.png")
+    : path.join(__dirname, "../client/public/app-logo.png");
 
-  // Ensure Express backend server is initializing/ready
-  await startExpressServer();
-  await waitForServer();
+  splashWindow = new BrowserWindow({
+    width: 500,
+    height: 350,
+    frame: false,
+    resizable: false,
+    transparent: true,
+    alwaysOnTop: true,
+    icon: iconPath,
+    backgroundColor: "#0f0f1a",
+    webPreferences: {
+      preload: path.join(__dirname, "preload.js"),
+      contextIsolation: true,
+      nodeIntegration: false,
+    }
+  });
+
+  const splashPath = path.join(__dirname, "splash.html");
+  splashWindow.loadFile(splashPath).catch((err) => {
+    console.error("[Electron Main] Failed to load splash screen:", err);
+  });
+
+  splashWindow.on("closed", () => {
+    splashWindow = null;
+  });
+}
+
+// Create Main Application Window
+async function createMainWindow() {
+  // Use direct icon path based on packaging state to avoid synchronous fs.existsSync call
+  const iconPath = app.isPackaged
+    ? path.join(__dirname, "../client/dist/app-logo.png")
+    : path.join(__dirname, "../client/public/app-logo.png");
 
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -173,7 +490,7 @@ async function createWindow() {
     frame: false,
     titleBarStyle: "hidden",
     autoHideMenuBar: true,
-    show: false,
+    show: false, // Initially hidden to prevent white flashes
     backgroundColor: "#0f0f1a",
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
@@ -184,27 +501,60 @@ async function createWindow() {
     }
   });
 
-  mainWindow.once("ready-to-show", () => {
-    mainWindow.show();
-  });
+  // Trigger or re-initialize startup tasks concurrently
+  startInitialization();
 
   // Determine environment and load page
   const isDev = !app.isPackaged && (process.env.NODE_ENV === "development" || process.argv.includes("--dev"));
-
   if (isDev) {
     console.log(`[Electron Main] Loading development URL: ${CLIENT_DEV_URL}`);
     mainWindow.loadURL(CLIENT_DEV_URL);
     mainWindow.webContents.openDevTools({ mode: "detach" });
   } else {
     const distIndexPath = path.join(__dirname, "../client/dist/index.html");
-    if (fs.existsSync(distIndexPath)) {
-      console.log(`[Electron Main] Loading production file: ${distIndexPath}`);
-      mainWindow.loadFile(distIndexPath);
-    } else {
-      console.log(`[Electron Main] Compiled dist not found, loading fallback URL: ${CLIENT_DEV_URL}`);
-      mainWindow.loadURL(CLIENT_DEV_URL);
-    }
+    console.log(`[Electron Main] Loading production file: ${distIndexPath}`);
+    mainWindow.loadFile(distIndexPath).catch((err) => {
+      console.error("[Electron Main] Failed to load production file:", err);
+    });
   }
+
+  // Fast launch: wait ONLY for the HTML renderer to finish loading before showing the app
+  const rendererLoaded = new Promise((resolve) => {
+    mainWindow.webContents.once("did-finish-load", () => resolve(true));
+    mainWindow.webContents.once("did-fail-load", () => resolve(false));
+  });
+
+  rendererLoaded
+    .then((success) => {
+      if (!mainWindow || mainWindow.isDestroyed()) return;
+
+      if (success) {
+        // Transition from splash screen to main window immediately
+        if (splashWindow && !splashWindow.isDestroyed()) {
+          splashWindow.close();
+        }
+        mainWindow.show();
+
+        // Delay non-critical tasks like auto updater until 3 seconds after transition
+        setTimeout(() => {
+          setupAutoUpdater();
+        }, 3000);
+      } else {
+        if (splashWindow && !splashWindow.isDestroyed()) {
+          splashWindow.close();
+        }
+        dialog.showErrorBox("Startup Error", "Failed to load frontend resources. Please restart the application.");
+        app.quit();
+      }
+    })
+    .catch((err) => {
+      console.error("[Electron Main] Error during startup sequence:", err);
+      if (splashWindow && !splashWindow.isDestroyed()) {
+        splashWindow.close();
+      }
+      dialog.showErrorBox("Startup Failure", `An unexpected error occurred: ${err.message || err}`);
+      app.quit();
+    });
 
   // Handle external links opening in user's browser
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
@@ -217,6 +567,8 @@ async function createWindow() {
 
   mainWindow.on("closed", () => {
     mainWindow = null;
+    migrationPromise = null;
+    serverPromise = null;
   });
 }
 
@@ -237,7 +589,11 @@ function registerIpcHandlers() {
   });
 
   ipcMain.on("window-close", () => {
-    if (mainWindow) mainWindow.close();
+    if (mainWindow) {
+      mainWindow.close();
+    } else if (splashWindow) {
+      splashWindow.close();
+    }
   });
 
   ipcMain.handle("get-app-version", () => {
@@ -251,6 +607,9 @@ function registerIpcHandlers() {
   ipcMain.handle("check-server-health", async () => {
     return await checkServerHealth();
   });
+
+  ipcMain.handle("get-server-status", () => serverStatus);
+  ipcMain.handle("get-migration-status", () => migrationStatus);
 
   // Triggered when user clicks "Install" on the UpdateBadge in the React UI
   ipcMain.on("install-update", () => {
@@ -338,13 +697,19 @@ function setupAutoUpdater() {
 
 // App Lifecycle Events
 app.whenReady().then(() => {
+  initializeEnvironment(); // Initialize env before spawning processes
   registerIpcHandlers();
-  setupAutoUpdater();
-  createWindow();
+
+  // Start migrations and Express server in parallel in the background immediately
+  startInitialization();
+
+  createSplashWindow();
+  createMainWindow();
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
+      createSplashWindow();
+      createMainWindow();
     }
   });
 });
