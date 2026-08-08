@@ -22,35 +22,11 @@
     "directories": {
       "output": "release"
     },
-    "compression": "store",
+    "compression": "normal",
     "npmRebuild": false,
     "files": [
       "electron/**/*",
       "client/dist/**/*"
-    ],
-    "extraFiles": [
-      {
-        "from": "server",
-        "to": "server",
-        "filter": [
-          "**/*",
-          "!**/*.log",
-          "!backup.sql",
-          "!out.txt",
-          "!err.txt",
-          "!output.txt",
-          "!node_modules/.cache/**/*",
-          "!node_modules/**/*.map",
-          "!node_modules/**/*.md",
-          "!node_modules/**/*.d.ts",
-          "!node_modules/**/test/**/*",
-          "!node_modules/**/tests/**/*",
-          "!node_modules/**/__tests__/**/*",
-          "!node_modules/**/docs/**/*",
-          "!node_modules/**/example/**/*",
-          "!node_modules/**/examples/**/*"
-        ]
-      }
     ],
     "linux": {
       "target": [
@@ -58,18 +34,74 @@
       ],
       "icon": "build/icon.png",
       "category": "Office",
-      "maintainer": "AGR Tech <support@agr.com>"
+      "maintainer": "AGR Tech <support@agr.com>",
+      "extraFiles": [
+        {
+          "from": "server",
+          "to": "server",
+          "filter": [
+            "**/*",
+            "!**/*.log",
+            "!backup.sql",
+            "!out.txt",
+            "!err.txt",
+            "!output.txt",
+            "!uploads/**/*",
+            "!node_modules/.cache/**/*",
+            "!node_modules/**/*.map",
+            "!node_modules/**/*.md",
+            "!node_modules/**/*.d.ts",
+            "!node_modules/**/test/**/*",
+            "!node_modules/**/tests/**/*",
+            "!node_modules/**/__tests__/**/*",
+            "!node_modules/**/docs/**/*",
+            "!node_modules/**/example/**/*",
+            "!node_modules/**/examples/**/*",
+            "!node_modules/**/*.exe",
+            "!node_modules/**/*.dll.node"
+          ]
+        }
+      ]
     },
     "win": {
       "target": [
-        "portable"
+        "nsis"
       ],
       "icon": "build/icon.ico",
-      "asar": false,
-      "forceCodeSigning": false
+      "asar": true,
+      "forceCodeSigning": false,
+      "extraFiles": [
+        {
+          "from": "server",
+          "to": "server",
+          "filter": [
+            "**/*",
+            "!**/*.log",
+            "!backup.sql",
+            "!out.txt",
+            "!err.txt",
+            "!output.txt",
+            "!uploads/**/*",
+            "!node_modules/.cache/**/*",
+            "!node_modules/**/*.map",
+            "!node_modules/**/*.md",
+            "!node_modules/**/*.d.ts",
+            "!node_modules/**/test/**/*",
+            "!node_modules/**/tests/**/*",
+            "!node_modules/**/__tests__/**/*",
+            "!node_modules/**/docs/**/*",
+            "!node_modules/**/example/**/*",
+            "!node_modules/**/examples/**/*",
+            "!node_modules/**/*rhel*",
+            "!node_modules/**/*.so.node",
+            "!node_modules/**/schema-engine-linux*"
+          ]
+        }
+      ]
     },
     "nsis": {
-      "oneClick": true,
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
       "perMachine": false,
       "deleteAppDataOnUninstall": false,
       "createDesktopShortcut": "always",
