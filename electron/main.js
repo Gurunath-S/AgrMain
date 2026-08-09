@@ -6,6 +6,20 @@ const fs = require("fs");
 const crypto = require("crypto");
 const { autoUpdater } = require("electron-updater");
 
+// Detect Wine environment
+const isWine = Object.keys(process.env).some(key => key.toUpperCase().startsWith("WINE")) || 
+               (process.env.PATH && process.env.PATH.includes("/.wine"));
+
+if (isWine) {
+  console.log("[Electron Main] Wine environment detected. Disabling hardware acceleration for stability.");
+  app.disableHardwareAcceleration();
+  app.commandLine.appendSwitch("disable-gpu");
+  app.commandLine.appendSwitch("disable-software-rasterizer");
+  app.commandLine.appendSwitch("disable-gpu-compositing");
+  app.commandLine.appendSwitch("disable-gpu-rasterization");
+  app.commandLine.appendSwitch("disable-gpu-sandbox");
+}
+
 // Single-instance lock to prevent port collisions and database corruption
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
@@ -405,8 +419,27 @@ async function startExpressServer() {
 
 // Stop Express server process safely
 function stopExpressServer() {
+  console.log("[Electron Main] Sending shutdown command to Express backend...");
+  try {
+    const req = http.request({
+      hostname: "localhost",
+      port: SERVER_PORT,
+      path: "/api/shutdown",
+      method: "POST",
+      timeout: 1000
+    }, (res) => {
+      console.log(`[Electron Main] Backend shutdown response status: ${res.statusCode}`);
+    });
+    req.on("error", (e) => {
+      console.warn(`[Electron Main] Backend shutdown request failed (expected if not running): ${e.message}`);
+    });
+    req.end();
+  } catch (err) {
+    console.error("[Electron Main] Failed to send shutdown request:", err);
+  }
+
   if (serverProcess) {
-    console.log("[Electron Main] Terminating Express backend server...");
+    console.log("[Electron Main] Terminating Express backend server process...");
     serverProcess.kill();
     serverProcess = null;
   }
@@ -452,7 +485,7 @@ function createSplashWindow() {
     height: 350,
     frame: false,
     resizable: false,
-    transparent: true,
+    transparent: !isWine,
     alwaysOnTop: true,
     icon: iconPath,
     backgroundColor: "#0f0f1a",
@@ -480,6 +513,9 @@ async function createMainWindow() {
     ? path.join(__dirname, "../client/dist/app-logo.png")
     : path.join(__dirname, "../client/public/app-logo.png");
 
+  const isWindows = process.platform === "win32" && !isWine;
+  const isMac = process.platform === "darwin";
+
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
@@ -489,9 +525,18 @@ async function createMainWindow() {
     icon: iconPath,
     frame: false,
     titleBarStyle: "hidden",
+    titleBarOverlay: isWindows
+      ? {
+          color: "#1a2435", // Matches the custom title bar gradient start/color
+          symbolColor: "#ffffff",
+          height: 38,
+        }
+      : isMac
+      ? true
+      : false,
     autoHideMenuBar: true,
     show: false, // Initially hidden to prevent white flashes
-    backgroundColor: "#0f0f1a",
+    backgroundColor: "#f9f9f9",
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
@@ -574,6 +619,10 @@ async function createMainWindow() {
 
 // Register IPC handlers
 function registerIpcHandlers() {
+  ipcMain.on("check-wine", (event) => {
+    event.returnValue = isWine;
+  });
+
   ipcMain.on("window-minimize", () => {
     if (mainWindow) mainWindow.minimize();
   });
@@ -589,7 +638,11 @@ function registerIpcHandlers() {
   });
 
   ipcMain.on("window-close", () => {
-    if (mainWindow) {
+    if (splashWindow && !splashWindow.isDestroyed() && (!mainWindow || !mainWindow.isVisible())) {
+      console.log("[Electron Main] Splash screen close requested before main window is visible. Quitting app...");
+      splashWindow.close();
+      app.quit();
+    } else if (mainWindow) {
       mainWindow.close();
     } else if (splashWindow) {
       splashWindow.close();
@@ -619,6 +672,78 @@ function registerIpcHandlers() {
       // Deferred but not yet downloaded — start download now
       autoUpdater.downloadUpdate();
     }
+  });
+
+  // OS-level interactions (file picking, directory selection, system error alerts)
+  ipcMain.handle("dialog-show-open-dialog", async (event, options) => {
+    const parentWin = BrowserWindow.fromWebContents(event.sender) || mainWindow;
+    return await dialog.showOpenDialog(parentWin, options);
+  });
+
+  ipcMain.handle("dialog-show-save-dialog", async (event, options) => {
+    const parentWin = BrowserWindow.fromWebContents(event.sender) || mainWindow;
+    return await dialog.showSaveDialog(parentWin, options);
+  });
+
+  ipcMain.handle("dialog-show-message-box", async (event, options) => {
+    const parentWin = BrowserWindow.fromWebContents(event.sender) || mainWindow;
+    return await dialog.showMessageBox(parentWin, options);
+  });
+
+  // Synchronous IPC dialog channels to override window.alert and window.confirm
+  ipcMain.on("window-alert", (event, message) => {
+    const parentWin = mainWindow && !mainWindow.isDestroyed() ? mainWindow : null;
+    dialog.showMessageBoxSync(parentWin, {
+      type: "warning",
+      buttons: ["OK"],
+      title: "Alert",
+      message: String(message),
+      noLink: true,
+    });
+    event.returnValue = null;
+  });
+
+  ipcMain.on("window-confirm", (event, message) => {
+    const parentWin = mainWindow && !mainWindow.isDestroyed() ? mainWindow : null;
+    const result = dialog.showMessageBoxSync(parentWin, {
+      type: "question",
+      buttons: ["Cancel", "OK"],
+      defaultId: 1,
+      cancelId: 0,
+      title: "Confirm",
+      message: String(message),
+      noLink: true,
+    });
+    event.returnValue = (result === 1);
+  });
+
+  // Spawn modal child windows
+  ipcMain.handle("create-modal-window", async (event, url, options = {}) => {
+    if (!mainWindow) return null;
+
+    const modalWindow = new BrowserWindow({
+      parent: mainWindow,
+      modal: true,
+      width: options.width || 800,
+      height: options.height || 600,
+      frame: false,
+      titleBarStyle: "hidden",
+      backgroundColor: "#f9f9f9",
+      webPreferences: {
+        preload: path.join(__dirname, "preload.js"),
+        contextIsolation: true,
+        nodeIntegration: false,
+      },
+      ...options,
+    });
+
+    if (url.startsWith("http:") || url.startsWith("https:")) {
+      await modalWindow.loadURL(url);
+    } else {
+      await modalWindow.loadFile(url);
+    }
+
+    return modalWindow.id;
   });
 }
 

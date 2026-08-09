@@ -15,8 +15,14 @@ const TITLEBAR_HEIGHT = 38;
 
 export default function TitleBar() {
   const isElectron = !!window.electronAPI?.isElectron;
+  const platform = window.electronAPI?.platform || "unknown";
+  const isWine = !!window.electronAPI?.isWine;
   const [maximized, setMaximized] = useState(false);
   const [hovered, setHovered] = useState(null); // "min" | "max" | "close"
+
+  // Only Windows (win32) and macOS (darwin) will render the OS-native control overlays in our configuration
+  // When running in Wine, native Windows control overlays are not supported/functional.
+  const useNativeControls = (platform === "win32" && !isWine) || platform === "darwin";
 
   // Sync maximized state on mount + whenever window state changes
   const syncMaximized = useCallback(async () => {
@@ -45,68 +51,79 @@ export default function TitleBar() {
   };
   const handleClose = () => window.electronAPI.closeWindow();
 
+  // Dynamic layout adjustments to avoid overlapping native system controls:
+  // - On Windows, native controls are on the right (approx. 140px width).
+  // - On macOS, native controls (traffic lights) are on the left (approx. 80px width).
+  const dragRegionStyle = {
+    ...styles.dragRegion,
+    paddingLeft: platform === "darwin" ? "80px" : "12px",
+    paddingRight: (platform === "win32" && !isWine) ? "140px" : "12px",
+  };
+
   return (
     <div style={styles.bar}>
       {/* Draggable region — covers the entire bar except the buttons */}
-      <div style={styles.dragRegion}>
+      <div style={dragRegionStyle}>
         <img src={logo} alt="AGR" style={styles.logo} draggable={false} />
         <span style={styles.appName}>AGR Jewellery Management</span>
       </div>
 
-      {/* Window control buttons */}
-      <div style={styles.controls}>
-        {/* Minimize */}
-        <button
-          id="titlebar-minimize"
-          title="Minimize"
-          style={getBtnStyle("min", hovered)}
-          onMouseEnter={() => setHovered("min")}
-          onMouseLeave={() => setHovered(null)}
-          onClick={handleMinimize}
-        >
-          <svg width="10" height="1" viewBox="0 0 10 1">
-            <line x1="0" y1="0.5" x2="10" y2="0.5" stroke="currentColor" strokeWidth="1.5" />
-          </svg>
-        </button>
-
-        {/* Maximize / Restore */}
-        <button
-          id="titlebar-maximize"
-          title={maximized ? "Restore" : "Maximize"}
-          style={getBtnStyle("max", hovered)}
-          onMouseEnter={() => setHovered("max")}
-          onMouseLeave={() => setHovered(null)}
-          onClick={handleMaximize}
-        >
-          {maximized ? (
-            // Restore icon (two overlapping squares)
-            <svg width="10" height="10" viewBox="0 0 10 10">
-              <rect x="2" y="0" width="8" height="8" fill="none" stroke="currentColor" strokeWidth="1.2" />
-              <rect x="0" y="2" width="8" height="8" fill="none" stroke="currentColor" strokeWidth="1.2" />
+      {/* Window control buttons (Rendered only on Linux or when running outside Electron) */}
+      {!useNativeControls && (
+        <div style={styles.controls}>
+          {/* Minimize */}
+          <button
+            id="titlebar-minimize"
+            title="Minimize"
+            style={getBtnStyle("min", hovered)}
+            onMouseEnter={() => setHovered("min")}
+            onMouseLeave={() => setHovered(null)}
+            onClick={handleMinimize}
+          >
+            <svg width="10" height="1" viewBox="0 0 10 1">
+              <line x1="0" y1="0.5" x2="10" y2="0.5" stroke="currentColor" strokeWidth="1.5" />
             </svg>
-          ) : (
-            // Maximize icon (single square)
-            <svg width="10" height="10" viewBox="0 0 10 10">
-              <rect x="0.6" y="0.6" width="8.8" height="8.8" fill="none" stroke="currentColor" strokeWidth="1.2" />
-            </svg>
-          )}
-        </button>
+          </button>
 
-        {/* Close */}
-        <button
-          id="titlebar-close"
-          title="Close"
-          style={getBtnStyle("close", hovered)}
-          onMouseEnter={() => setHovered("close")}
-          onMouseLeave={() => setHovered(null)}
-          onClick={handleClose}
-        >
-          <svg width="10" height="10" viewBox="0 0 10 10">
-            <line x1="0" y1="0" x2="10" y2="10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            <line x1="10" y1="0" x2="0" y2="10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
-        </button>
-      </div>
+          {/* Maximize / Restore */}
+          <button
+            id="titlebar-maximize"
+            title={maximized ? "Restore" : "Maximize"}
+            style={getBtnStyle("max", hovered)}
+            onMouseEnter={() => setHovered("max")}
+            onMouseLeave={() => setHovered(null)}
+            onClick={handleMaximize}
+          >
+            {maximized ? (
+              // Restore icon (two overlapping squares)
+              <svg width="10" height="10" viewBox="0 0 10 10">
+                <rect x="2" y="0" width="8" height="8" fill="none" stroke="currentColor" strokeWidth="1.2" />
+                <rect x="0" y="2" width="8" height="8" fill="none" stroke="currentColor" strokeWidth="1.2" />
+              </svg>
+            ) : (
+              // Maximize icon (single square)
+              <svg width="10" height="10" viewBox="0 0 10 10">
+                <rect x="0.6" y="0.6" width="8.8" height="8.8" fill="none" stroke="currentColor" strokeWidth="1.2" />
+              </svg>
+            )}
+          </button>
+
+          {/* Close */}
+          <button
+            id="titlebar-close"
+            title="Close"
+            style={getBtnStyle("close", hovered)}
+            onMouseEnter={() => setHovered("close")}
+            onMouseLeave={() => setHovered(null)}
+            onClick={handleClose}
+          >
+            <svg width="10" height="10" viewBox="0 0 10 10">
+              <line x1="0" y1="0" x2="10" y2="10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              <line x1="10" y1="0" x2="0" y2="10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -128,16 +145,13 @@ const styles = {
     zIndex: 10000,
     userSelect: "none",
     WebkitUserSelect: "none",
-    // No -webkit-app-region here — set per child
   },
   dragRegion: {
     flex: 1,
     display: "flex",
     alignItems: "center",
     gap: "8px",
-    paddingLeft: "12px",
     height: "100%",
-    // CSS property to make this area draggable
     WebkitAppRegion: "drag",
     cursor: "default",
   },
@@ -158,7 +172,6 @@ const styles = {
     display: "flex",
     alignItems: "center",
     height: "100%",
-    // Buttons must NOT be draggable
     WebkitAppRegion: "no-drag",
   },
 };

@@ -4,6 +4,7 @@ const { contextBridge, ipcRenderer } = require("electron");
 contextBridge.exposeInMainWorld("electronAPI", {
   isElectron: true,
   platform: process.platform,
+  isWine: ipcRenderer.sendSync("check-wine"),
   minimizeWindow: () => ipcRenderer.send("window-minimize"),
   maximizeWindow: () => ipcRenderer.send("window-maximize"),
   closeWindow: () => ipcRenderer.send("window-close"),
@@ -36,4 +37,16 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.on("migration-status", handler);
     return () => ipcRenderer.removeListener("migration-status", handler);
   },
+
+  // OS Dialog wrappers
+  showOpenDialog: (options) => ipcRenderer.invoke("dialog-show-open-dialog", options),
+  showSaveDialog: (options) => ipcRenderer.invoke("dialog-show-save-dialog", options),
+  showMessageBox: (options) => ipcRenderer.invoke("dialog-show-message-box", options),
+
+  // Synchronous dialog triggers for window.alert and window.confirm
+  showAlert: (message) => ipcRenderer.sendSync("window-alert", message),
+  showConfirm: (message) => ipcRenderer.sendSync("window-confirm", message),
+
+  // Spawn modal child windows
+  createModalWindow: (url, options) => ipcRenderer.invoke("create-modal-window", url, options),
 });
