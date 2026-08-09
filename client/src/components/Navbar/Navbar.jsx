@@ -102,6 +102,7 @@ const Navbar = () => {
   const handleReportClick = (path) => {
     setActiveReport(path);
     handleLinkClick(path);
+    navigate(path);
   };
 
   const handleStockClick = (path) => {
