@@ -103,6 +103,14 @@ app.get("/uploads/:filename", (req, res) => {
   res.sendFile(filePath);
 });
 
+// Clean shutdown endpoint for Electron subprocess control
+app.post("/api/shutdown", (req, res) => {
+  res.send({ success: true });
+  console.log("[Express Server] Shutdown request received. Exiting...");
+  setTimeout(() => {
+    process.exit(0);
+  }, 500);
+});
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
