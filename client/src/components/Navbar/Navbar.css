@@ -1,25 +1,75 @@
-/* Responsive Navbar Styling */
-.navbar-nav-link {
-  white-space: nowrap !important;
+/* Dropdown Menu Animations */
+.nav-dropdown-animate {
+  animation: navDropdownFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transform-origin: top;
 }
 
-@media (max-width: 1366px) {
-  .navbar-nav-link {
-    font-size: 0.86rem !important;
-    padding: 4px 6px !important;
+@keyframes navDropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scaleY(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
   }
 }
 
-@media (max-width: 1180px) {
-  .navbar-nav-link {
+/* Responsiveness: dynamically adjust padding and text sizes to fit all nav items without wrapping */
+@media (max-width: 1440px) {
+  nav, div[style*="navContainer"] {
+    padding: 0 16px !important;
+  }
+  
+  a[style*="navLink"], div[style*="dropdownTrigger"] {
+    padding: 0 8px !important;
+    font-size: 0.84rem !important;
+    gap: 4px !important;
+  }
+  
+  /* Select children elements if style is applied inline */
+  a[style*="navLink"] span, div[style*="dropdownTrigger"] span {
+    font-size: 0.84rem !important;
+  }
+}
+
+@media (max-width: 1280px) {
+  nav, div[style*="navContainer"] {
+    padding: 0 12px !important;
+  }
+  
+  a[style*="navLink"], div[style*="dropdownTrigger"] {
+    padding: 0 6px !important;
+    font-size: 0.8rem !important;
+    gap: 3px !important;
+  }
+  
+  a[style*="navLink"] span, div[style*="dropdownTrigger"] span {
+    font-size: 0.8rem !important;
+  }
+
+  svg[style*="navIcon"] {
+    font-size: 14px !important;
+  }
+}
+
+@media (max-width: 1100px) {
+  a[style*="navLink"], div[style*="dropdownTrigger"] {
+    padding: 0 4px !important;
+    font-size: 0.76rem !important;
+    gap: 2px !important;
+  }
+  
+  a[style*="navLink"] span, div[style*="dropdownTrigger"] span {
+    font-size: 0.76rem !important;
+  }
+
+  svg[style*="navIcon"] {
+    font-size: 13px !important;
+  }
+  
+  div[style*="logoutButton"] {
+    padding: 4px 10px !important;
     font-size: 0.78rem !important;
-    padding: 3px 4px !important;
-  }
-}
-
-@media (max-width: 1024px) {
-  .navbar-nav-link {
-    font-size: 0.72rem !important;
-    padding: 2px 3px !important;
   }
 }
