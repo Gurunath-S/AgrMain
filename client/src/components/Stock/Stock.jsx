@@ -391,51 +391,59 @@ const Stock = () => {
             </tr>
           </thead>
           <tbody>
-            {paginatedData.map((item, index) => (
-              <tr key={item.id}>
-                <td>{page * rowsPerPage + index + 1}</td>
-                <td>{item.itemName}</td>
-                <td>
-                  <Chip 
-                    label={item.stockType === "PRODUCT" ? "PROD" : "ITEM"} 
-                    size="small" 
-                    color={item.stockType === "PRODUCT" ? "primary" : "secondary"} 
-                    variant="outlined"
-                  />
-                </td>
-                <td>{safeFixed(item.displayWeight)}</td>
-                <td>{item.count || 0}</td>
-                <td>{item.touch ?? 0}</td>
-                <td>{safeFixed(item.stoneWeight)}</td>
-                <td>{safeFixed(item.netWeight)}</td>
-                <td>{item.wastageValue} ({item.wastageType})</td>
-                <td>{safeFixed(item.wastagePure)}</td>
-                <td>{safeFixed(item.finalPurity)}</td>
-                <td>
-                  <Box sx={{ display: "flex", gap: 1, justifyContent: "center" }}>
-                    <Button
-                      variant="contained"
-                      size="small"
-                      startIcon={<AddCircleOutline />}
-                      onClick={() => openAddWeightPopup(item)}
-                    >
-                      Add BC
-                    </Button>
-                    {((item.stockType === "PRODUCT" && item.isBillProduct) || 
-                      (item.stockType === "ITEM_PURCHASE" && item.isBilled)) && (
+            {paginatedData.length > 0 ? (
+              paginatedData.map((item, index) => (
+                <tr key={item.id}>
+                  <td>{page * rowsPerPage + index + 1}</td>
+                  <td>{item.itemName}</td>
+                  <td>
+                    <Chip 
+                      label={item.stockType === "PRODUCT" ? "PROD" : "ITEM"} 
+                      size="small" 
+                      color={item.stockType === "PRODUCT" ? "primary" : "secondary"} 
+                      variant="outlined"
+                    />
+                  </td>
+                  <td>{safeFixed(item.displayWeight)}</td>
+                  <td>{item.count || 0}</td>
+                  <td>{item.touch ?? 0}</td>
+                  <td>{safeFixed(item.stoneWeight)}</td>
+                  <td>{safeFixed(item.netWeight)}</td>
+                  <td>{item.wastageValue} ({item.wastageType})</td>
+                  <td>{safeFixed(item.wastagePure)}</td>
+                  <td>{safeFixed(item.finalPurity)}</td>
+                  <td>
+                    <Box sx={{ display: "flex", gap: 1, justifyContent: "center" }}>
                       <Button
-                        variant="outlined"
+                        variant="contained"
                         size="small"
-                        color="error"
-                        onClick={() => handleItemSold(item)}
+                        startIcon={<AddCircleOutline />}
+                        onClick={() => openAddWeightPopup(item)}
                       >
-                        Sold
+                        Add BC
                       </Button>
-                    )}
-                  </Box>
+                      {((item.stockType === "PRODUCT" && item.isBillProduct) || 
+                        (item.stockType === "ITEM_PURCHASE" && item.isBilled)) && (
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          color="error"
+                          onClick={() => handleItemSold(item)}
+                        >
+                          Sold
+                        </Button>
+                      )}
+                    </Box>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="12" style={{ textAlign: "center", padding: "20px" }}>
+                  No stock available.
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
 

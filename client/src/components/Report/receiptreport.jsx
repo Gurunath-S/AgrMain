@@ -276,9 +276,16 @@ const ReceiptReport = () => {
               />
             </div>
           ) : (
-            <span style={{ display: "block", textAlign: "center" }}>
+            <p
+              style={{
+                textAlign: "center",
+                color: "red",
+                fontSize: "20px",
+                marginTop: "10px",
+              }}
+            >
               No Receipts For this Customers
-            </span>
+            </p>
           )}
         </div>
       </div>
