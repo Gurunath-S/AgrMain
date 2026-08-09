@@ -29,6 +29,7 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs from "dayjs";
+import SkeletonLoader from "../Common/SkeletonLoader";
 
 const OverallReportNew = () => {
   const [reportData, setReportData] = useState([]);
@@ -422,8 +423,9 @@ const OverallReportNew = () => {
       </Box>
 
       {loading ? (
-        <Box sx={{ display: "flex", justifyContent: "center", my: 10 }}>
-          <CircularProgress />
+        <Box sx={{ mt: 3 }}>
+          <SkeletonLoader type="card" count={4} />
+          <SkeletonLoader type="table" rows={6} cols={5} />
         </Box>
       ) : (
         <>

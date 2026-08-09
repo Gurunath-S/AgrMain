@@ -21,6 +21,7 @@ import ReactDOMServer from "react-dom/server";
 import StatementPrint from "./StatementPrint";
 import ReturnDetailsModal from "../CustomerReturn&Repair/ReturnDetailsModal";
 import RepairDetailsModal from "../CustomerReturn&Repair/RepairDetailsModal";
+import SkeletonLoader from "../Common/SkeletonLoader";
 import "./BalanceStatement.css";
 
 const BalanceStatement = ({ typeOverride }) => {
@@ -502,17 +503,12 @@ const BalanceStatement = ({ typeOverride }) => {
 
   if (loading) {
     return (
-      <Box 
-        display="flex" 
-        flexDirection="column" 
-        alignItems="center" 
-        justifyContent="center" 
-        height="80vh"
-      >
-        <CircularProgress />
-        <Typography variant="h6" sx={{ mt: 2, color: "#0a4c9a", fontWeight: 'bold' }}>
-          Loading statement details...
+      <Box sx={{ p: 3, maxWidth: "1200px", margin: "0 auto" }}>
+        <Typography variant="h5" sx={{ mb: 3, color: "#111827", fontWeight: 'bold' }}>
+          Loading Statement Details...
         </Typography>
+        <SkeletonLoader type="card" count={3} />
+        <SkeletonLoader type="table" rows={6} cols={10} />
       </Box>
     );
   }

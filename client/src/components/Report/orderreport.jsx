@@ -34,6 +34,7 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs from "dayjs";
+import SkeletonLoader from "../Common/SkeletonLoader";
 
 const OrderReport = () => {
   const [filter, setFilter] = useState("all");
@@ -236,8 +237,8 @@ const OrderReport = () => {
       </div>
 
       {loading ? (
-        <Box sx={{ textAlign: "center", mt: 4 }}>
-          <CircularProgress />
+        <Box sx={{ mt: 3 }}>
+          <SkeletonLoader type="table" rows={3} cols={5} />
         </Box>
       ) : filteredOrders.length === 0 ? (
         <Paper sx={{ p: 3, mt: 3, textAlign: "center" }}>

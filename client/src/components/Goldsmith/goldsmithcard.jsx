@@ -21,6 +21,7 @@ import {
 import { Add, Visibility } from "@mui/icons-material";
 import NewJobCard from "../Goldsmith/Newjobcard";
 import { BACKEND_SERVER_URL } from "../../Config/Config";
+import SkeletonLoader from "../Common/SkeletonLoader";
 
 const GoldsmithDetails = () => {
   const { id, name } = useParams();
@@ -228,22 +229,8 @@ const GoldsmithDetails = () => {
         </Box>
 
         {loadingJobcards ? (
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "center",
-              alignItems: "center",
-              height: "30vh",
-            }}
-          >
-            <CircularProgress />
-            <Typography
-              variant="h6"
-              sx={{ mt: 2, color: "#0a4c9a", fontWeight: "bold" }}
-            >
-              Loading Job Card Records...
-            </Typography>
+          <Box sx={{ mt: 2 }}>
+            <SkeletonLoader type="table" rows={4} cols={12} />
           </Box>
         ) : jobcards.length === 0 ? (
           <Paper elevation={0} sx={{ p: 4, textAlign: "center" }}>

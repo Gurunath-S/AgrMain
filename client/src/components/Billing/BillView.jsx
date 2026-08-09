@@ -23,6 +23,7 @@ import ReactDOMServer from 'react-dom/server';
 import "./BillView.css";
 import PrintableBill from "./PrintableBill";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
+import SkeletonLoader from "../Common/SkeletonLoader";
 
 // Helper utilities
 const toNumber = (v) => {
@@ -312,17 +313,12 @@ export default function BillView() {
 
   if (loading) {
     return (
-      <Box 
-        display="flex" 
-        flexDirection="column" 
-        alignItems="center" 
-        justifyContent="center" 
-        height="80vh"
-      >
-        <CircularProgress />
-        <Typography variant="h6" sx={{ mt: 2, color: "#0a4c9a", fontWeight: 'bold' }}>
-          Loading bill details...
+      <Box sx={{ maxWidth: "65%", margin: "40px auto", padding: "0 20px" }}>
+        <Typography variant="h5" sx={{ mb: 3, color: "#111827", fontWeight: 'bold' }}>
+          Loading Bill Details...
         </Typography>
+        <SkeletonLoader type="form" fields={2} />
+        <SkeletonLoader type="table" rows={4} cols={8} />
       </Box>
     );
   }
