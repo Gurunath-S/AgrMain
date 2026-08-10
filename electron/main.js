@@ -5,6 +5,8 @@ const http = require("http");
 const fs = require("fs");
 const crypto = require("crypto");
 const { autoUpdater } = require("electron-updater");
+const isWindows = process.platform === "win32";
+const isMac = process.platform === "darwin";
 
 // Detect Wine environment
 const isWine = Object.keys(process.env).some(key => key.toUpperCase().startsWith("WINE")) || 
