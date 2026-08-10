@@ -266,14 +266,15 @@ function runPrismaMigrations() {
             console.log("[Electron Main] Database is not empty (P3005). Attempting to baseline by marking init migration as applied...");
             runBaseline();
           } else {
-            resolve(false);
+            console.warn("[Electron Main] Prisma migration failed, but proceeding to launch anyway.");
+            resolve(true);
           }
         }
       });
 
       migrationProcess.on("error", (err) => {
         console.error("[Electron Main] Failed to spawn Prisma migration:", err);
-        resolve(false);
+        resolve(true);
       });
     };
 
@@ -304,13 +305,14 @@ function runPrismaMigrations() {
         } else {
           console.error(`[Electron Main] Baseline resolve stdout:\n${stdoutData}`);
           console.error(`[Electron Main] Baseline resolve stderr:\n${stderrData}`);
-          resolve(false);
+          console.warn("[Electron Main] Prisma baseline resolve failed, but proceeding to launch anyway.");
+          resolve(true);
         }
       });
 
       baselineProcess.on("error", (err) => {
         console.error("[Electron Main] Failed to spawn Prisma baseline resolve:", err);
-        resolve(false);
+        resolve(true);
       });
     };
 
@@ -453,8 +455,8 @@ function stopExpressServer() {
   }
 }
 
-// Poll until server is ready (up to 15 seconds, checking every 80ms)
-function waitForServer(port = SERVER_PORT, retries = 180, intervalMs = 80) {
+// Poll until server is ready (up to 32 seconds, checking every 80ms)
+function waitForServer(port = SERVER_PORT, retries = 400, intervalMs = 80) {
   return new Promise((resolve) => {
     let attempts = 0;
     const check = () => {
@@ -523,7 +525,7 @@ async function createMainWindow() {
     minHeight: 700,
     title: "AGR Jewellery Management System",
     icon: iconPath,
-    frame: false,
+    frame: isWindows ? true : false,
     titleBarStyle: "hidden",
     titleBarOverlay: isWindows
       ? {
@@ -548,6 +550,28 @@ async function createMainWindow() {
 
   // Trigger or re-initialize startup tasks concurrently
   startInitialization();
+
+  // Handle keyboard zoom events (Ctrl+ / Ctrl- / Ctrl0)
+  mainWindow.webContents.on("before-input-event", (event, input) => {
+    if (input.type === "keyDown" && (input.control || input.meta)) {
+      if (input.key === "=" || input.key === "+") {
+        const currentZoom = mainWindow.webContents.getZoomLevel();
+        if (currentZoom < 4) {
+          mainWindow.webContents.setZoomLevel(currentZoom + 0.5);
+        }
+        event.preventDefault();
+      } else if (input.key === "-") {
+        const currentZoom = mainWindow.webContents.getZoomLevel();
+        if (currentZoom > -2) {
+          mainWindow.webContents.setZoomLevel(currentZoom - 0.5);
+        }
+        event.preventDefault();
+      } else if (input.key === "0") {
+        mainWindow.webContents.setZoomLevel(0);
+        event.preventDefault();
+      }
+    }
+  });
 
   // Determine environment and load page
   const isDev = !app.isPackaged && (process.env.NODE_ENV === "development" || process.argv.includes("--dev"));
