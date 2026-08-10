@@ -15,9 +15,9 @@ function Home() {
       </div>
 
       <div className="content-wrapper">
-        <h1 className="brand-name">AGR Jewellery</h1>
+        <h1 className="brand-name">LEO Jewellery</h1>
         <p className="brand-tagline">
-          Timeless elegance, crafted to perfection
+          naa thaa da leo..., Leo Dass....
         </p>
         <button
           className="discover-btn"
