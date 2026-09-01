@@ -406,8 +406,13 @@ const Navbar = () => {
 
       <div style={styles.navRight}>
         {updateStatus === "downloading" && (
-          <div style={styles.updateProgressBadge} title="Downloading update in background">
-            <span style={styles.spinnerIcon}>⏳</span> Updating ({updatePercent}%)...
+          <div
+            style={styles.updateProgressBadge}
+            className="update-badge-pulse"
+            title="Downloading update in background"
+          >
+            <span className="update-spinner-ring" />
+            <span>Updating {updatePercent}%</span>
           </div>
         )}
 

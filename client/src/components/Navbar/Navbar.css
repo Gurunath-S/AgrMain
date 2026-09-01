@@ -15,6 +15,40 @@
   }
 }
 
+/* Update Progress Spinner & Pulse */
+.update-spinner-ring {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 50%;
+  border-top-color: #60a5fa;
+  animation: updateSpinnerSpin 0.75s linear infinite;
+  box-sizing: border-box;
+}
+
+@keyframes updateSpinnerSpin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.update-badge-pulse {
+  animation: updatePulse 2s ease-in-out infinite;
+}
+
+@keyframes updatePulse {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(96, 165, 250, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(96, 165, 250, 0.5);
+  }
+}
+
 /* Responsiveness: dynamically adjust padding and text sizes to fit all nav items without wrapping */
 @media (max-width: 1440px) {
   nav, div[style*="navContainer"] {
