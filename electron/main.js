@@ -188,10 +188,10 @@ function initializeEnvironment() {
         if (userDbMatch) userUrl = userDbMatch[1];
       }
 
-      // If database.env doesn't exist OR has an outdated database URL from older releases, sync it
-      if (!fs.existsSync(dbEnvPath) || (userUrl && defaultUrl && userUrl !== defaultUrl && (userUrl.includes("agr_jewel") || userUrl.includes("agrClientDb")))) {
+      // If database.env doesn't exist OR has a different database URL from server/.env, sync it
+      if (!fs.existsSync(dbEnvPath) || (userUrl && defaultUrl && userUrl !== defaultUrl)) {
         fs.copyFileSync(defaultEnvPath, dbEnvPath);
-        console.log(`[Electron Main] Synced updated default .env template to: ${dbEnvPath}`);
+        console.log(`[Electron Main] Synced current default .env (${defaultUrl}) to: ${dbEnvPath}`);
       }
     } catch (e) {
       console.error("[Electron Main] Env template sync check failed:", e);
