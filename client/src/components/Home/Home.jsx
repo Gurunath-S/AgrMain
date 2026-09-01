@@ -15,7 +15,7 @@ function Home() {
       </div>
 
       <div className="content-wrapper">
-        <h1 className="brand-name">Darla Jewellery</h1>
+        <h1 className="brand-name">AAA Jewellery</h1>
         <p className="brand-tagline">
           Timeless elegance, crafted to perfection
         </p>
