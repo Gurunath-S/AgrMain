@@ -1,3 +1,34 @@
+// Ensure stdout and stderr file descriptors are valid in background process mode
+(function fixStdio() {
+  const { Writable } = require("stream");
+  ["stdout", "stderr"].forEach((streamName) => {
+    try {
+      const stream = process[streamName];
+      if (stream && typeof stream.write === "function") {
+        return;
+      }
+    } catch (e) {
+      // Accessing stdio getter threw EBADF or fd error
+    }
+    const dummy = new Writable({
+      write(chunk, encoding, callback) {
+        if (typeof callback === "function") callback();
+      }
+    });
+    dummy.isTTY = false;
+    try {
+      Object.defineProperty(process, streamName, {
+        value: dummy,
+        configurable: true,
+        writable: true,
+        enumerable: true
+      });
+    } catch (e) {
+      process[streamName] = dummy;
+    }
+  });
+})();
+
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");

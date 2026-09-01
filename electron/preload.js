@@ -17,11 +17,18 @@ contextBridge.exposeInMainWorld("electronAPI", {
   onUpdateDeferred: (callback) => {
     const handler = (_event, version) => callback(version);
     ipcRenderer.on("update-deferred", handler);
-    // Returns a cleanup function to remove the listener
     return () => ipcRenderer.removeListener("update-deferred", handler);
   },
-
-  // Auto-update: trigger quit-and-install from the UpdateBadge component
+  onUpdateProgress: (callback) => {
+    const handler = (_event, percent) => callback(percent);
+    ipcRenderer.on("update-progress", handler);
+    return () => ipcRenderer.removeListener("update-progress", handler);
+  },
+  onUpdateReady: (callback) => {
+    const handler = (_event, version) => callback(version);
+    ipcRenderer.on("update-ready", handler);
+    return () => ipcRenderer.removeListener("update-ready", handler);
+  },
   installUpdate: () => ipcRenderer.send("install-update"),
 
   // Server and database status APIs

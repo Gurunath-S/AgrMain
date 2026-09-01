@@ -34,6 +34,35 @@ const Navbar = () => {
   const [activeRepair, setActiveRepair] = useState("");
   const [activeReturn, setActiveReturn] = useState("");
 
+  const [updateStatus, setUpdateStatus] = useState("idle");
+  const [updatePercent, setUpdatePercent] = useState(0);
+  const [updateVersion, setUpdateVersion] = useState("");
+
+  useEffect(() => {
+    if (!window.electronAPI) return;
+
+    const cleanupProgress = window.electronAPI.onUpdateProgress?.((percent) => {
+      setUpdateStatus("downloading");
+      setUpdatePercent(percent);
+    });
+
+    const cleanupReady = window.electronAPI.onUpdateReady?.((version) => {
+      setUpdateStatus("ready");
+      setUpdateVersion(version);
+    });
+
+    const cleanupDeferred = window.electronAPI.onUpdateDeferred?.((version) => {
+      setUpdateStatus("ready");
+      setUpdateVersion(version);
+    });
+
+    return () => {
+      cleanupProgress?.();
+      cleanupReady?.();
+      cleanupDeferred?.();
+    };
+  }, []);
+
   useEffect(() => {
     const path = location.pathname;
     setActiveLink(path);
@@ -376,6 +405,22 @@ const Navbar = () => {
       </div>
 
       <div style={styles.navRight}>
+        {updateStatus === "downloading" && (
+          <div style={styles.updateProgressBadge} title="Downloading update in background">
+            <span style={styles.spinnerIcon}>⏳</span> Updating ({updatePercent}%)...
+          </div>
+        )}
+
+        {updateStatus === "ready" && (
+          <button
+            onClick={() => window.electronAPI?.installUpdate?.()}
+            style={styles.updateReadyBtn}
+            title="Click to restart and apply update now"
+          >
+            Update {updateVersion ? `v${updateVersion}` : ""} Ready — Restart Now
+          </button>
+        )}
+
         <NotificationBell />
         <button
           onClick={handleLogout}
@@ -531,6 +576,31 @@ const styles = {
     fontSize: "10px",
     marginLeft: "8px",
     textShadow: "0 0 8px rgba(212, 175, 55, 0.6)",
+  },
+  updateProgressBadge: {
+    backgroundColor: "rgba(59, 130, 246, 0.15)",
+    border: "1px solid rgba(59, 130, 246, 0.4)",
+    color: "#60a5fa",
+    borderRadius: "20px",
+    padding: "4px 12px",
+    fontSize: "0.82rem",
+    fontWeight: "600",
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+  },
+  updateReadyBtn: {
+    backgroundColor: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+    background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+    color: "#ffffff",
+    border: "none",
+    borderRadius: "20px",
+    padding: "6px 14px",
+    fontSize: "0.82rem",
+    fontWeight: "700",
+    cursor: "pointer",
+    boxShadow: "0 0 12px rgba(16, 185, 129, 0.4)",
+    transition: "all 0.25s ease",
   },
 };
 

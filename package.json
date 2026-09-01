@@ -1,6 +1,6 @@
 {
   "name": "agr-jewellery-desktop",
-  "version": "1.2.4",
+  "version": "1.2.5",
   "description": "AGR Jewellery Management Desktop Application",
   "main": "electron/main.js",
   "scripts": {
@@ -13,7 +13,8 @@
     "dist:win": "npm run build:client && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win",
     "release:patch": "npm version patch && git push && git push --tags",
     "release:minor": "npm version minor && git push && git push --tags",
-    "release:major": "npm version major && git push && git push --tags"
+    "release:major": "npm version major && git push && git push --tags",
+    "postinstall": "npm --prefix server run postinstall"
   },
   "build": {
     "appId": "com.agr.jewellery.desktop",
@@ -103,6 +104,7 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "perMachine": false,
+      "allowElevation": true,
       "deleteAppDataOnUninstall": false,
       "createDesktopShortcut": "always",
       "createStartMenuShortcut": true,

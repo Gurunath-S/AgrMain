@@ -1,3 +1,44 @@
+// Ensure stdout and stderr file descriptors are valid in GUI mode / packaged executables.
+// In GUI/packaged/Wine execution, standard file descriptors (fd 1 or 2) may be closed, causing Node to throw "Error: open EBADF" when process.stdout or process.stderr is accessed.
+(function fixStdio() {
+  const { Writable } = require("stream");
+  ["stdout", "stderr"].forEach((streamName) => {
+    try {
+      const stream = process[streamName];
+      if (stream && typeof stream.write === "function") {
+        return;
+      }
+    } catch (e) {
+      // Accessing stdio getter threw EBADF or fd error
+    }
+    const dummy = new Writable({
+      write(chunk, encoding, callback) {
+        if (typeof callback === "function") callback();
+      }
+    });
+    dummy.isTTY = false;
+    try {
+      Object.defineProperty(process, streamName, {
+        value: dummy,
+        configurable: true,
+        writable: true,
+        enumerable: true
+      });
+    } catch (e) {
+      process[streamName] = dummy;
+    }
+  });
+})();
+
+// Global safety error handlers for Electron main process
+process.on("uncaughtException", (err) => {
+  console.error("[Electron Main] Uncaught Exception caught safely:", err);
+});
+
+process.on("unhandledRejection", (reason) => {
+  console.error("[Electron Main] Unhandled Rejection caught safely:", reason);
+});
+
 const { app, BrowserWindow, ipcMain, shell, dialog, Notification } = require("electron");
 const path = require("path");
 const { spawn } = require("child_process");
@@ -134,17 +175,33 @@ function initializeEnvironment() {
     fs.mkdirSync(logDir, { recursive: true });
   }
 
-  if (!fs.existsSync(dbEnvPath) && fs.existsSync(defaultEnvPath)) {
+  if (fs.existsSync(defaultEnvPath)) {
     try {
-      fs.copyFileSync(defaultEnvPath, dbEnvPath);
-      console.log(`[Electron Main] Copied default .env template to: ${dbEnvPath}`);
+      const defaultEnvContent = fs.readFileSync(defaultEnvPath, "utf8");
+      const defaultDbMatch = defaultEnvContent.match(/^DATABASE_URL\s*=\s*"?([^"\r\n]+)"?/m);
+      const defaultUrl = defaultDbMatch ? defaultDbMatch[1] : null;
+
+      let userUrl = null;
+      if (fs.existsSync(dbEnvPath)) {
+        const userEnvContent = fs.readFileSync(dbEnvPath, "utf8");
+        const userDbMatch = userEnvContent.match(/^DATABASE_URL\s*=\s*"?([^"\r\n]+)"?/m);
+        if (userDbMatch) userUrl = userDbMatch[1];
+      }
+
+      // If database.env doesn't exist OR has an outdated database URL from older releases, sync it
+      if (!fs.existsSync(dbEnvPath) || (userUrl && defaultUrl && userUrl !== defaultUrl && (userUrl.includes("agr_jewel") || userUrl.includes("agrClientDb")))) {
+        fs.copyFileSync(defaultEnvPath, dbEnvPath);
+        console.log(`[Electron Main] Synced updated default .env template to: ${dbEnvPath}`);
+      }
     } catch (e) {
-      console.error("[Electron Main] Failed to copy default env template:", e);
+      console.error("[Electron Main] Env template sync check failed:", e);
     }
   }
 
   // Load environment variables from the user's custom database.env
-  loadEnvFile(dbEnvPath);
+  if (fs.existsSync(dbEnvPath)) {
+    loadEnvFile(dbEnvPath);
+  }
 
   // Fall back to server/.env if database.env was not loaded/empty (or if not in userData)
   if (!process.env.DATABASE_URL && fs.existsSync(defaultEnvPath)) {
@@ -154,6 +211,15 @@ function initializeEnvironment() {
 
   if (process.env.PORT) {
     SERVER_PORT = parseInt(process.env.PORT, 10);
+  }
+
+  if (process.env.DATABASE_URL) {
+    try {
+      const urlObj = new URL(process.env.DATABASE_URL.replace(/^mysql:/, "http:"));
+      console.log(`[Electron Main] Connected Database: "${urlObj.pathname.replace(/^\//, "")}" on host ${urlObj.host}`);
+    } catch (e) {
+      console.log(`[Electron Main] Connected DATABASE_URL: ${process.env.DATABASE_URL}`);
+    }
   }
 }
 
@@ -693,7 +759,7 @@ function registerIpcHandlers() {
   // Triggered when user clicks "Install" on the UpdateBadge in the React UI
   ipcMain.on("install-update", () => {
     if (updateReadyToInstall) {
-      autoUpdater.quitAndInstall(false, true);
+      autoUpdater.quitAndInstall(true, true);
     } else {
       // Deferred but not yet downloaded — start download now
       autoUpdater.downloadUpdate();
@@ -784,59 +850,37 @@ function registerIpcHandlers() {
 function setupAutoUpdater() {
   if (!app.isPackaged) return;
 
-  autoUpdater.autoDownload = false;       // we decide when to download
-  autoUpdater.autoInstallOnAppQuit = true; // install silently on quit
+  autoUpdater.autoDownload = true;        // Download silently in background
+  autoUpdater.autoInstallOnAppQuit = true; // Install silently when app quits
 
   autoUpdater.checkForUpdates().catch((err) => {
     console.error("[AutoUpdater] Check failed:", err?.message);
   });
 
   autoUpdater.on("update-available", (info) => {
-    const newVersion = info.version;
-    const currentVersion = app.getVersion();
-    const [newMajor, newMinor] = newVersion.split(".").map(Number);
-    const [curMajor, curMinor] = currentVersion.split(".").map(Number);
-    const isSilentPatch = newMajor === curMajor && newMinor === curMinor;
+    console.log(`[AutoUpdater] Update v${info.version} available — downloading in background.`);
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("update-progress", 0);
+    }
+  });
 
-    if (isSilentPatch) {
-      // PATCH → silent download, no dialog
-      console.log(`[AutoUpdater] Patch v${newVersion} found — downloading silently`);
-      autoUpdater.downloadUpdate();
-    } else {
-      // MINOR or MAJOR → ask the user
-      const response = dialog.showMessageBoxSync(mainWindow, {
-        type: "info",
-        title: "Update Available — AGR Jewellery",
-        message: `Version v${newVersion} is now available`,
-        detail:
-          "A new version has been released with improvements.\n" +
-          "Your data will not be affected by the update.\n\n" +
-          "Would you like to download and install it now?",
-        buttons: ["Update Now", "Later"],
-        defaultId: 0,
-        cancelId: 1,
-      });
-
-      if (response === 0) {
-        autoUpdater.downloadUpdate();
-      } else {
-        // User chose Later → show the persistent UpdateBadge in the UI
-        console.log("[AutoUpdater] User deferred — sending update-deferred to renderer");
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.webContents.send("update-deferred", newVersion);
-        }
-      }
+  autoUpdater.on("download-progress", (progressObj) => {
+    const percent = Math.round(progressObj.percent || 0);
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("update-progress", percent);
     }
   });
 
   autoUpdater.on("update-downloaded", (info) => {
     updateReadyToInstall = true;
-    console.log(`[AutoUpdater] v${info.version} downloaded — ready to install on quit`);
-    // Native OS notification (Windows toast / Linux notify)
+    console.log(`[AutoUpdater] v${info.version} downloaded — ready to install`);
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("update-ready", info.version);
+    }
     if (Notification.isSupported()) {
       new Notification({
         title: "AGR Jewellery — Update Ready",
-        body: `v${info.version} downloaded. Restart the app to apply the update.`,
+        body: `Version v${info.version} downloaded. Click Restart in the app header or close to apply.`,
       }).show();
     }
   });
