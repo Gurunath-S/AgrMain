@@ -508,9 +508,18 @@ function stopExpressServer() {
     console.error("[Electron Main] Failed to send shutdown request:", err);
   }
 
-  if (serverProcess) {
+  if (serverProcess && serverProcess.pid) {
     console.log("[Electron Main] Terminating Express backend server process...");
-    serverProcess.kill();
+    try {
+      if (process.platform === "win32") {
+        const { execSync } = require("child_process");
+        execSync(`taskkill /pid ${serverProcess.pid} /f /t`);
+      } else {
+        serverProcess.kill("SIGKILL");
+      }
+    } catch (e) {
+      try { serverProcess.kill(); } catch (_) {}
+    }
     serverProcess = null;
   }
   if (outLogStream) {
@@ -758,8 +767,12 @@ function registerIpcHandlers() {
 
   // Triggered when user clicks "Install" on the UpdateBadge in the React UI
   ipcMain.on("install-update", () => {
+    console.log("[AutoUpdater] User requested restart to apply update.");
     if (updateReadyToInstall) {
-      autoUpdater.quitAndInstall(true, true);
+      stopExpressServer();
+      setTimeout(() => {
+        autoUpdater.quitAndInstall(false, true);
+      }, 500);
     } else {
       // Deferred but not yet downloaded — start download now
       autoUpdater.downloadUpdate();
