@@ -615,7 +615,7 @@ async function createMainWindow() {
       : false,
     autoHideMenuBar: true,
     show: false, // Initially hidden to prevent white flashes
-    backgroundColor: "#f9f9f9",
+    backgroundColor: "#0d1117",
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
@@ -866,9 +866,17 @@ function setupAutoUpdater() {
   autoUpdater.autoDownload = true;        // Download silently in background
   autoUpdater.autoInstallOnAppQuit = true; // Install silently when app quits
 
+  // Check immediately on startup
   autoUpdater.checkForUpdates().catch((err) => {
-    console.error("[AutoUpdater] Check failed:", err?.message);
+    console.error("[AutoUpdater] Initial check failed:", err?.message);
   });
+
+  // Automatically re-check for updates every 5 minutes while app remains open
+  setInterval(() => {
+    autoUpdater.checkForUpdates().catch((err) => {
+      console.error("[AutoUpdater] Periodic update check failed:", err?.message);
+    });
+  }, 5 * 60 * 1000);
 
   autoUpdater.on("update-available", (info) => {
     console.log(`[AutoUpdater] Update v${info.version} available — downloading in background.`);
