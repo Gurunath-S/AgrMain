@@ -146,13 +146,37 @@
 }
 
 .app-version-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 30px;
+  padding: 8px 18px;
+  background: #ffffff;
+  border: 1.5px solid #d4af37;
+  border-radius: 20px;
+  box-shadow: 0 4px 15px rgba(212, 175, 55, 0.15);
   font-family: 'Montserrat', sans-serif;
-  font-size: 0.88rem;
-  color: #888899;
-  margin-top: 25px;
-  letter-spacing: 1.5px;
+  transition: all 0.3s ease;
+}
+
+.app-version-tag:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(212, 175, 55, 0.25);
+}
+
+.app-version-tag .version-label {
+  font-size: 0.85rem;
   font-weight: 500;
-  opacity: 0.85;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.app-version-tag .version-number {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: 1.2px;
 }
 .login-form {
   display: flex;

@@ -24,7 +24,7 @@ function Home() {
       </div>
 
       <div className="content-wrapper">
-        <h1 className="brand-name">CCC Jewellery</h1>
+        <h1 className="brand-name">DDD Jewellery</h1>
         <p className="brand-tagline">
           Timeless elegance, crafted to perfection
         </p>
@@ -40,7 +40,8 @@ function Home() {
 
         {version && (
           <div className="app-version-tag">
-            v{version}
+            <span className="version-label">App Version:</span>
+            <span className="version-number">v{version}</span>
           </div>
         )}
       </div>
