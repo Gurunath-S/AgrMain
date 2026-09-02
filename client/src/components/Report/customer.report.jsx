@@ -352,7 +352,7 @@ const CustReport = () => {
                         : (bill.info.billNo || bill.info.billId || (bill.info.bill && bill.info.bill.id) || "-")}
                     </td>
                     <td>
-                      {new Date(bill.info.createdAt || bill.info.sentDate).toLocaleDateString(
+                      {new Date(bill.info.date || bill.info.sentDate || bill.info.createdAt).toLocaleDateString(
                         "en-GB"
                       )}
                     </td>

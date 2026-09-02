@@ -1,0 +1,195 @@
+/* Dropdown Menu Animations */
+.nav-dropdown-animate {
+  animation: navDropdownFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transform-origin: top;
+}
+
+@keyframes navDropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scaleY(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+  }
+}
+
+/* Update Progress Spinner & Pulse */
+.update-spinner-ring {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 50%;
+  border-top-color: #60a5fa;
+  animation: updateSpinnerSpin 0.75s linear infinite;
+  box-sizing: border-box;
+}
+
+@keyframes updateSpinnerSpin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.update-badge-pulse {
+  animation: updatePulse 2s ease-in-out infinite;
+}
+
+@keyframes updatePulse {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(96, 165, 250, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(96, 165, 250, 0.5);
+  }
+}
+
+/* Responsiveness: dynamically adjust padding and text sizes to fit all nav items without wrapping */
+@media (max-width: 1440px) {
+  nav, div[style*="navContainer"] {
+    padding: 0 16px !important;
+  }
+  
+  a[style*="navLink"], div[style*="dropdownTrigger"] {
+    padding: 0 8px !important;
+    font-size: 0.84rem !important;
+    gap: 4px !important;
+  }
+  
+  /* Select children elements if style is applied inline */
+  a[style*="navLink"] span, div[style*="dropdownTrigger"] span {
+    font-size: 0.84rem !important;
+  }
+}
+
+@media (max-width: 1280px) {
+  nav, div[style*="navContainer"] {
+    padding: 0 12px !important;
+  }
+  
+  a[style*="navLink"], div[style*="dropdownTrigger"] {
+    padding: 0 6px !important;
+    font-size: 0.8rem !important;
+    gap: 3px !important;
+  }
+  
+  a[style*="navLink"] span, div[style*="dropdownTrigger"] span {
+    font-size: 0.8rem !important;
+  }
+
+  svg[style*="navIcon"] {
+    font-size: 14px !important;
+  }
+}
+
+@media (max-width: 1100px) {
+  a[style*="navLink"], div[style*="dropdownTrigger"] {
+    padding: 0 4px !important;
+    font-size: 0.76rem !important;
+    gap: 2px !important;
+  }
+  
+  a[style*="navLink"] span, div[style*="dropdownTrigger"] span {
+    font-size: 0.76rem !important;
+  }
+
+  svg[style*="navIcon"] {
+    font-size: 13px !important;
+  }
+  
+  div[style*="logoutButton"] {
+    padding: 4px 10px !important;
+    font-size: 0.78rem !important;
+  }
+}
+
+/* Full-screen Update Restarting Overlay */
+.update-installing-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(13, 17, 23, 0.94);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999999;
+  font-family: 'Montserrat', sans-serif;
+  animation: overlayFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes overlayFadeIn {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.update-installing-card {
+  background: linear-gradient(135deg, rgba(26, 36, 53, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 20px;
+  padding: 40px 48px;
+  max-width: 480px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 30px rgba(212, 175, 55, 0.15);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.update-spinner-frame {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.2) 0%, rgba(212, 175, 55, 0.05) 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 24px;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  box-shadow: 0 0 24px rgba(212, 175, 55, 0.2);
+}
+
+.update-gold-spinner {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  border: 3px solid rgba(212, 175, 55, 0.15);
+  border-top: 3px solid #d4af37;
+  border-right: 3px solid #f6e05e;
+  animation: updateSpinnerSpin 0.85s linear infinite;
+}
+
+.update-installing-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 8px 0;
+  letter-spacing: 0.5px;
+}
+
+.update-installing-version {
+  font-size: 0.95rem;
+  color: #d4af37;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin: 0 0 16px 0;
+}
+
+.update-installing-desc {
+  font-size: 0.88rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.5;
+  margin: 0;
+}
+

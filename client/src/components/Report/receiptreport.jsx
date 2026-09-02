@@ -252,7 +252,7 @@ const ReceiptReport = () => {
                   {paginatedData.map((item, index) => (
                     <tr key={index + 1}>
                       <td>{page * rowsPerPage + index + 1}</td>
-                      <td>{item.date ? dayjs(item.date).format("DD-MM-YYYY") : "-"}</td>
+                      <td>{item.date || item.createdAt ? dayjs(item.date || item.createdAt).format("DD/MM/YYYY") : "-"}</td>
                       <td>{item.type}</td>
                       <td>{item.goldRate}</td>
                       <td>{item.gold}</td>
@@ -276,9 +276,16 @@ const ReceiptReport = () => {
               />
             </div>
           ) : (
-            <span style={{ display: "block", textAlign: "center" }}>
+            <p
+              style={{
+                textAlign: "center",
+                color: "red",
+                fontSize: "20px",
+                marginTop: "10px",
+              }}
+            >
               No Receipts For this Customers
-            </span>
+            </p>
           )}
         </div>
       </div>

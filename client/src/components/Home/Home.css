@@ -1,7 +1,7 @@
  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Montserrat:wght@300;400&display=swap');
 
 .luxury-container {
-  height: 100vh;
+  height: calc(100dvh - var(--titlebar-height, 0px));
   background-color: #f8f5f2;
   display: flex;
   flex-direction: column;
@@ -60,10 +60,10 @@
 
 .brand-name {
   font-family: 'Cormorant Garamond', serif;
-  font-weight: 600;
-  font-size: 2.8rem;
-  color: #333;
-  letter-spacing: 1px;
+  font-weight: 700;
+  font-size: 3.2rem;
+  color: #111827;
+  letter-spacing: 2px;
   margin-bottom: 10px;
   position: relative;
 }
@@ -72,34 +72,36 @@
   content: '';
   display: block;
   width: 60px;
-  height: 1px;
+  height: 2px;
   background: #d4af37;
   margin: 15px auto;
 }
 
 .brand-tagline {
   font-family: 'Montserrat', sans-serif;
-  font-weight: 300;
-  font-size: 1.1rem;
-  color: #666;
-  letter-spacing: 1px;
-  margin-bottom: 30px;
+  font-weight: 500;
+  font-size: 1.15rem;
+  color: #374151;
+  letter-spacing: 1.5px;
+  margin-bottom: 35px;
 }
 
 .discover-btn {
   background: transparent;
-  color: #333;
-  padding: 12px 40px;
+  color: #111827;
+  padding: 14px 45px;
   font-family: 'Montserrat', sans-serif;
-  font-size: 0.9rem;
+  font-weight: 600;
+  font-size: 0.92rem;
   letter-spacing: 2px;
   text-transform: uppercase;
-  border: 1px solid #d4af37;
-  border-radius: 0;
+  border: 2px solid #d4af37;
+  border-radius: 4px;
   cursor: pointer;
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
+  z-index: 1;
 }
 
 .discover-btn::before {
@@ -112,6 +114,15 @@
   background: #d4af37;
   transition: all 0.3s ease;
   z-index: -1;
+}
+
+.discover-btn:hover {
+  color: #fff;
+  border-color: #d4af37;
+}
+
+.discover-btn:hover::before {
+  left: 0;
 }
 
 @media (max-width: 768px) {
@@ -132,6 +143,23 @@
     padding: 10px 30px;
     font-size: 0.8rem;
   }
+}
+
+.corner-version-tag {
+  position: absolute;
+  bottom: 16px;
+  right: 20px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #9ca3af;
+  letter-spacing: 1px;
+  background: rgba(255, 255, 255, 0.7);
+  padding: 4px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  backdrop-filter: blur(4px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 .login-form {
   display: flex;

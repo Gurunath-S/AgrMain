@@ -29,6 +29,7 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs from "dayjs";
+import SkeletonLoader from "../Common/SkeletonLoader";
 
 const OverallReportNew = () => {
   const [reportData, setReportData] = useState([]);
@@ -64,8 +65,11 @@ const OverallReportNew = () => {
 
       const queryParams = (start && end) ? `?startDate=${start}&endDate=${end}` : "";
       
+      // NOTE: Customers are always fetched WITHOUT a date filter so the
+      // Customer Bill Balances table always shows every customer's running
+      // balance, regardless of the selected date range.
       const [customersRes, billsRes, stockRes, entriesRes, purchaseStockRes] = await Promise.all([
-        fetch(`${BACKEND_SERVER_URL}/api/customers${queryParams}`),
+        fetch(`${BACKEND_SERVER_URL}/api/customers`),          // always all customers
         fetch(`${BACKEND_SERVER_URL}/api/bill${queryParams}`),
         fetch(`${BACKEND_SERVER_URL}/api/productStock${queryParams}`),
         fetch(`${BACKEND_SERVER_URL}/api/entries${queryParams}`),
@@ -107,6 +111,7 @@ const OverallReportNew = () => {
         activeCustomersCount = activeCustomerIds.size;
       } else {
         // No filter: show absolute current running balances for all time
+        // customersData always has ALL customers (fetched without date filter)
         pureBalanceTotal = customersData.reduce(
           (sum, c) => sum + (parseFloat(c.customerBillBalance?.balance) || 0),
           0
@@ -115,7 +120,7 @@ const OverallReportNew = () => {
           (sum, c) => sum + (parseFloat(c.customerBillBalance?.hallMarkBal) || 0),
           0
         );
-        activeCustomersCount = customersData.length;
+        activeCustomersCount = customersData.length; // total registered customers
       }
 
       // Option A: The table always shows ALL customers and their all-time overall running balance
@@ -418,8 +423,9 @@ const OverallReportNew = () => {
       </Box>
 
       {loading ? (
-        <Box sx={{ display: "flex", justifyContent: "center", my: 10 }}>
-          <CircularProgress />
+        <Box sx={{ mt: 3 }}>
+          <SkeletonLoader type="card" count={4} />
+          <SkeletonLoader type="table" rows={6} cols={5} />
         </Box>
       ) : (
         <>

@@ -10,9 +10,9 @@ server/.env
 
 # Build output
 dist/
-build/
 client/dist/
 server/dist/
+release/
 
 # Logs
 npm-debug.log*

@@ -6,10 +6,8 @@
 
 body {
   margin: 0;
- 
-
   background-color: #f9f9f9;
-  color: #202124
+  color: #202124;
 }
 
 /* Fix MUI DatePicker selected date visibility */

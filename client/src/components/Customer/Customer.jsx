@@ -130,47 +130,47 @@ const Customer = () => {
           }}
         />
 
-        {paginatedCustomers.length > 0 ? (
-          <TableContainer>
-            <Table>
-              <TableHead
-                sx={{
+        <TableContainer>
+          <Table>
+            <TableHead
+              sx={{
+                backgroundColor: "#e3f2fd",
+                "& th": {
                   backgroundColor: "#e3f2fd",
-                  "& th": {
-                    backgroundColor: "#e3f2fd",
-                    color: "#0d47a1",
-                    fontWeight: "bold",
-                    fontSize: "1rem",
-                  },
-                }}
-              >
-                <TableRow>
-                 <TableCell align="center">
-                    <strong>S.no</strong>
-                  </TableCell>
-                  <TableCell align="center">
-                    <strong>Customer Name</strong>
-                  </TableCell>
-                  <TableCell align="center">
-                    <strong>Phone Number</strong>
-                  </TableCell>
-                  <TableCell align="center">
-                    <strong>Balance</strong>
-                  </TableCell>
-                  <TableCell align="center">
-                    <strong>Hallmark Balance</strong>
-                  </TableCell>
-                  <TableCell align="center">
-                    <strong>Address</strong>
-                  </TableCell>
-                  <TableCell align="center">
-                    <strong>Actions</strong>
-                  </TableCell>
-                </TableRow>
-              </TableHead>
+                  color: "#0d47a1",
+                  fontWeight: "bold",
+                  fontSize: "1rem",
+                },
+              }}
+            >
+              <TableRow>
+                <TableCell align="center">
+                  <strong>S.no</strong>
+                </TableCell>
+                <TableCell align="center">
+                  <strong>Customer Name</strong>
+                </TableCell>
+                <TableCell align="center">
+                  <strong>Phone Number</strong>
+                </TableCell>
+                <TableCell align="center">
+                  <strong>Balance</strong>
+                </TableCell>
+                <TableCell align="center">
+                  <strong>Hallmark Balance</strong>
+                </TableCell>
+                <TableCell align="center">
+                  <strong>Address</strong>
+                </TableCell>
+                <TableCell align="center">
+                  <strong>Actions</strong>
+                </TableCell>
+              </TableRow>
+            </TableHead>
 
-              <TableBody>
-                {paginatedCustomers.map((customer, index) => (
+            <TableBody>
+              {paginatedCustomers.length > 0 ? (
+                paginatedCustomers.map((customer, index) => (
                   <TableRow key={index} hover>
                     <TableCell align="center">{page * rowsPerPage + index + 1}</TableCell>
                     <TableCell align="center">{customer.name}</TableCell>
@@ -241,15 +241,17 @@ const Customer = () => {
                       </Tooltip>
                     </TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        ) : (
-          <Typography variant="body1" align="center">
-            No customer details available.
-          </Typography>
-        )}
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={7} align="center">
+                    No customer details available.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
       </Paper>
       <TablePagination
         component="div"

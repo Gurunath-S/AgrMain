@@ -705,10 +705,22 @@ const geAllBill = async (req, res) => {
     if (startDate && endDate) {
       const end = new Date(endDate);
       end.setHours(23, 59, 59, 999);
-      where.date = {
-        gte: new Date(startDate),
-        lte: end,
-      };
+      const start = new Date(startDate);
+      where.OR = [
+        {
+          date: {
+            gte: start,
+            lte: end,
+          }
+        },
+        {
+          date: null,
+          createdAt: {
+            gte: start,
+            lte: end,
+          }
+        }
+      ];
     }
 
     const allBills = await prisma.bill.findMany({
@@ -768,22 +780,56 @@ const customerReport = async (req, res) => {
       const to = new Date(toDate);
       to.setHours(23, 59, 59, 999); // Include full day
 
-      billWhere.createdAt = {
+      const dateFilter = {
         gte: from,
         lte: to,
       };
-      billReceiveWhere.createdAt = {
-        gte: from,
-        lte: to,
-      };
-      receiptWhere.createdAt = {
-        gte: from,
-        lte: to,
-      };
-      transactionWhere.createdAt = {
-        gte: from,
-        lte: to,
-      };
+
+      billWhere.OR = [
+        {
+          date: dateFilter,
+        },
+        {
+          date: null,
+          createdAt: dateFilter,
+        }
+      ];
+
+      billReceiveWhere.OR = [
+        {
+          date: {
+            gte: fromDate,
+            lte: toDate,
+          }
+        },
+        {
+          date: null,
+          createdAt: dateFilter,
+        }
+      ];
+
+      receiptWhere.OR = [
+        {
+          date: {
+            gte: fromDate,
+            lte: toDate,
+          }
+        },
+        {
+          date: null,
+          createdAt: dateFilter,
+        }
+      ];
+
+      transactionWhere.OR = [
+        {
+          date: dateFilter,
+        },
+        {
+          date: null,
+          createdAt: dateFilter,
+        }
+      ];
     }
 
     // If customer_id is provided
@@ -907,8 +953,8 @@ const customerReport = async (req, res) => {
       
       // Sort combined data chronologically
       combinedData.sort((a, b) => {
-        const dateA = new Date(a.info.createdAt || a.info.sentDate || a.info.date);
-        const dateB = new Date(b.info.createdAt || b.info.sentDate || b.info.date);
+        const dateA = new Date(a.info.date || a.info.sentDate || a.info.createdAt);
+        const dateB = new Date(b.info.date || b.info.sentDate || b.info.createdAt);
         return dateA - dateB;
       });
 

@@ -1,4 +1,36 @@
+// Ensure stdout and stderr file descriptors are valid in background process mode
+(function fixStdio() {
+  const { Writable } = require("stream");
+  ["stdout", "stderr"].forEach((streamName) => {
+    try {
+      const stream = process[streamName];
+      if (stream && typeof stream.write === "function") {
+        return;
+      }
+    } catch (e) {
+      // Accessing stdio getter threw EBADF or fd error
+    }
+    const dummy = new Writable({
+      write(chunk, encoding, callback) {
+        if (typeof callback === "function") callback();
+      }
+    });
+    dummy.isTTY = false;
+    try {
+      Object.defineProperty(process, streamName, {
+        value: dummy,
+        configurable: true,
+        writable: true,
+        enumerable: true
+      });
+    } catch (e) {
+      process[streamName] = dummy;
+    }
+  });
+})();
+
 const express = require("express");
+const compression = require("compression");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const authRoutes = require("./Routes/auth.routes");
@@ -39,17 +71,10 @@ const app = express();
 var morgan = require("morgan");
 const PORT = process.env.PORT || 5002;
 app.use(morgan("dev"));
+app.use(compression());
 
 app.use(cors({
-  origin: [
-    "https://agrmain.onrender.com",
-    "https://agrmain.onrender.com/",
-    "http://localhost:3000",
-    "https://agrclientapp.onrender.com",
-    "https://agrclientapp.onrender.com/",
-    "https://agrclient.onrender.com",
-    "https://agrclient.onrender.com/"
-  ],
+  origin: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
@@ -111,6 +136,14 @@ app.get("/uploads/:filename", (req, res) => {
   res.sendFile(filePath);
 });
 
+// Clean shutdown endpoint for Electron subprocess control
+app.post("/api/shutdown", (req, res) => {
+  res.send({ success: true });
+  console.log("[Express Server] Shutdown request received. Exiting...");
+  setTimeout(() => {
+    process.exit(0);
+  }, 500);
+});
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

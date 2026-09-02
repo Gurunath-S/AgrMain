@@ -34,6 +34,7 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs from "dayjs";
+import SkeletonLoader from "../Common/SkeletonLoader";
 
 const OrderReport = () => {
   const [filter, setFilter] = useState("all");
@@ -84,7 +85,7 @@ const OrderReport = () => {
         name: item.item_name,
         description: item.description,
         weight: weight.toFixed(3),
-        dueDate: new Date(item.due_date?.split("T")[0]).toLocaleDateString("en-IN") || "N/A",
+        dueDate: item.due_date ? new Date(item.due_date).toLocaleDateString("en-GB") : "N/A",
         rawDueDate: item.due_date,
         status: item.status || "Pending",
         workerName: item.worker_name || "",
@@ -105,7 +106,7 @@ const OrderReport = () => {
         displayIndex: idx + 1,
         id: `Order #${idx + 1}`,
         totalPurity: group.totalPurity.toFixed(3),
-        orderDate: new Date(group.createdAt.split("T")[0]).toLocaleDateString("en-IN"),
+        orderDate: group.createdAt ? new Date(group.createdAt).toLocaleDateString("en-GB") : "N/A",
         rawOrderDate: group.createdAt,
       }));
   };
@@ -236,8 +237,8 @@ const OrderReport = () => {
       </div>
 
       {loading ? (
-        <Box sx={{ textAlign: "center", mt: 4 }}>
-          <CircularProgress />
+        <Box sx={{ mt: 3 }}>
+          <SkeletonLoader type="table" rows={3} cols={5} />
         </Box>
       ) : filteredOrders.length === 0 ? (
         <Paper sx={{ p: 3, mt: 3, textAlign: "center" }}>

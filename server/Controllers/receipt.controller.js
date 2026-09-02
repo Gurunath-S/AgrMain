@@ -117,7 +117,9 @@ const receiptFilter = async (req, res) => {
         touch: true,
         purity: true,
         amount: true,
-        receiveHallMark: true
+        receiveHallMark: true,
+        createdAt: true,
+        updatedAt: true
       }
     });
 
