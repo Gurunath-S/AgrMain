@@ -1,10 +1,19 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import logo from "../../Assets/shared image.jpg"; 
 import "./Home.css";
 
 function Home() {
   const navigate = useNavigate();
+  const [version, setVersion] = useState("");
+
+  useEffect(() => {
+    if (window.electronAPI && typeof window.electronAPI.getAppVersion === "function") {
+      window.electronAPI.getAppVersion().then((v) => {
+        if (v) setVersion(v);
+      });
+    }
+  }, []);
 
   return (
     <div className="luxury-container">
@@ -28,6 +37,12 @@ function Home() {
         >
           Go to Home Page
         </button>
+
+        {version && (
+          <div className="app-version-tag">
+            v{version}
+          </div>
+        )}
       </div>
     </div>
   );
