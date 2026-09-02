@@ -767,7 +767,7 @@ function registerIpcHandlers() {
   ipcMain.handle("get-server-status", () => serverStatus);
   ipcMain.handle("get-migration-status", () => migrationStatus);
 
-  // Helper function to cleanly shut down server, windows, and lock before running quitAndInstall
+  // Helper function to cleanly shut down server and lock before running quitAndInstall
   function performUpdateInstall() {
     if (isInstallingUpdate) return;
     isInstallingUpdate = true;
@@ -781,26 +781,14 @@ function registerIpcHandlers() {
       console.error("[AutoUpdater] Error releasing single instance lock:", e);
     }
 
-    try {
-      const windows = BrowserWindow.getAllWindows();
-      windows.forEach((win) => {
-        if (win && !win.isDestroyed()) {
-          win.destroy();
-        }
-      });
-    } catch (e) {
-      console.error("[AutoUpdater] Error destroying windows:", e);
-    }
-
-    setTimeout(() => {
+    setImmediate(() => {
       try {
         autoUpdater.quitAndInstall(true, true);
-        setTimeout(() => app.exit(0), 500);
       } catch (err) {
         console.error("[AutoUpdater] Error calling quitAndInstall:", err);
-        app.exit(0);
+        app.quit();
       }
-    }, 1000);
+    });
   }
 
   // Triggered when user clicks "Install" / "Restart Now" in the React UI
