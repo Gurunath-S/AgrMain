@@ -87,6 +87,7 @@ let serverProcess = null;
 let outLogStream = null;
 let errLogStream = null;
 let updateReadyToInstall = false; // tracks if update downloaded and ready
+let isInstallingUpdate = false;   // tracks if updater restart is already triggered
 let migrationPromise = null;
 let serverPromise = null;
 let serverStatus = "loading"; // 'loading', 'ready', 'failed'
@@ -765,13 +766,19 @@ function registerIpcHandlers() {
   ipcMain.handle("get-server-status", () => serverStatus);
   ipcMain.handle("get-migration-status", () => migrationStatus);
 
-  // Triggered when user clicks "Install" on the UpdateBadge in the React UI
+  // Triggered when user clicks "Install" / "Restart Now" in the React UI
   ipcMain.on("install-update", () => {
     console.log("[AutoUpdater] User requested restart to apply update.");
     if (updateReadyToInstall) {
+      if (isInstallingUpdate) return;
+      isInstallingUpdate = true;
       stopExpressServer();
       setTimeout(() => {
-        autoUpdater.quitAndInstall(false, true);
+        try {
+          autoUpdater.quitAndInstall(true, true);
+        } catch (err) {
+          console.error("[AutoUpdater] Error calling quitAndInstall:", err);
+        }
       }, 500);
     } else {
       // Deferred but not yet downloaded — start download now
@@ -930,8 +937,23 @@ app.whenReady().then(() => {
   });
 });
 
+app.on("before-quit", (event) => {
+  console.log("[Electron Main] App before-quit triggered.");
+  if (updateReadyToInstall && !isInstallingUpdate) {
+    isInstallingUpdate = true;
+    console.log("[Electron Main] Update is ready. Triggering silent quitAndInstall on quit...");
+    stopExpressServer();
+    try {
+      autoUpdater.quitAndInstall(true, true);
+    } catch (err) {
+      console.error("[Electron Main] Error running quitAndInstall on before-quit:", err);
+    }
+  } else {
+    stopExpressServer();
+  }
+});
+
 app.on("window-all-closed", () => {
-  stopExpressServer();
   if (process.platform !== "darwin") {
     app.quit();
   }

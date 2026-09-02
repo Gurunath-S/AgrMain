@@ -57,7 +57,7 @@ export default function UpdateBadge() {
           disabled={installing}
           style={styles.installBtn}
         >
-          {installing ? "Downloading…" : "Install"}
+          {installing ? "Restarting…" : "Install"}
         </button>
 
         <button
@@ -69,6 +69,23 @@ export default function UpdateBadge() {
           ✕
         </button>
       </div>
+
+      {installing && (
+        <div className="update-installing-overlay">
+          <div className="update-installing-card">
+            <div className="update-spinner-frame">
+              <div className="update-gold-spinner" />
+            </div>
+            <h2 className="update-installing-title">Restarting & Applying Update</h2>
+            {updateVersion && (
+              <div className="update-installing-version">Installing v{updateVersion}</div>
+            )}
+            <p className="update-installing-desc">
+              Please wait while the application shuts down safely and launches the new version...
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

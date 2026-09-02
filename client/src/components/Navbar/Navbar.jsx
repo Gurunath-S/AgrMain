@@ -37,6 +37,12 @@ const Navbar = () => {
   const [updateStatus, setUpdateStatus] = useState("idle");
   const [updatePercent, setUpdatePercent] = useState(0);
   const [updateVersion, setUpdateVersion] = useState("");
+  const [isInstalling, setIsInstalling] = useState(false);
+
+  const handleTriggerRestart = () => {
+    setIsInstalling(true);
+    window.electronAPI?.installUpdate?.();
+  };
 
   useEffect(() => {
     if (!window.electronAPI) return;
@@ -418,7 +424,7 @@ const Navbar = () => {
 
         {updateStatus === "ready" && (
           <button
-            onClick={() => window.electronAPI?.installUpdate?.()}
+            onClick={handleTriggerRestart}
             style={styles.updateReadyBtn}
             title="Click to restart and apply update now"
           >
@@ -444,6 +450,23 @@ const Navbar = () => {
           <span>Logout</span>
         </button>
       </div>
+
+      {isInstalling && (
+        <div className="update-installing-overlay">
+          <div className="update-installing-card">
+            <div className="update-spinner-frame">
+              <div className="update-gold-spinner" />
+            </div>
+            <h2 className="update-installing-title">Restarting & Applying Update</h2>
+            {updateVersion && (
+              <div className="update-installing-version">Installing v{updateVersion}</div>
+            )}
+            <p className="update-installing-desc">
+              Please wait while the application shuts down safely and launches the new version...
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
