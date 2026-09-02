@@ -66,15 +66,12 @@ if (isWine) {
 // Single-instance lock to prevent port collisions and database corruption
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
-  dialog.showErrorBox(
-    "Application Already Running",
-    "An instance of AGR Jewellery Management is already running.\n\nPlease close the existing application window before launching a new one."
-  );
+  console.warn("[Electron Main] Another instance is already running. Quitting duplicate instance cleanly.");
   app.quit();
   process.exit(0);
 } else {
   app.on("second-instance", () => {
-    if (mainWindow) {
+    if (mainWindow && !mainWindow.isDestroyed()) {
       if (mainWindow.isMinimized()) mainWindow.restore();
       mainWindow.focus();
     }
@@ -766,20 +763,46 @@ function registerIpcHandlers() {
   ipcMain.handle("get-server-status", () => serverStatus);
   ipcMain.handle("get-migration-status", () => migrationStatus);
 
+  // Helper function to cleanly shut down server, windows, and lock before running quitAndInstall
+  function performUpdateInstall() {
+    if (isInstallingUpdate) return;
+    isInstallingUpdate = true;
+    console.log("[AutoUpdater] Releasing lock & shutting down backend for clean update install...");
+
+    stopExpressServer();
+
+    try {
+      app.releaseSingleInstanceLock();
+    } catch (e) {
+      console.error("[AutoUpdater] Error releasing single instance lock:", e);
+    }
+
+    try {
+      const windows = BrowserWindow.getAllWindows();
+      windows.forEach((win) => {
+        if (win && !win.isDestroyed()) {
+          win.destroy();
+        }
+      });
+    } catch (e) {
+      console.error("[AutoUpdater] Error destroying windows:", e);
+    }
+
+    setTimeout(() => {
+      try {
+        autoUpdater.quitAndInstall(true, true);
+      } catch (err) {
+        console.error("[AutoUpdater] Error calling quitAndInstall:", err);
+        app.quit();
+      }
+    }, 400);
+  }
+
   // Triggered when user clicks "Install" / "Restart Now" in the React UI
   ipcMain.on("install-update", () => {
     console.log("[AutoUpdater] User requested restart to apply update.");
     if (updateReadyToInstall) {
-      if (isInstallingUpdate) return;
-      isInstallingUpdate = true;
-      stopExpressServer();
-      setTimeout(() => {
-        try {
-          autoUpdater.quitAndInstall(true, true);
-        } catch (err) {
-          console.error("[AutoUpdater] Error calling quitAndInstall:", err);
-        }
-      }, 500);
+      performUpdateInstall();
     } else {
       // Deferred but not yet downloaded — start download now
       autoUpdater.downloadUpdate();
@@ -940,14 +963,7 @@ app.whenReady().then(() => {
 app.on("before-quit", (event) => {
   console.log("[Electron Main] App before-quit triggered.");
   if (updateReadyToInstall && !isInstallingUpdate) {
-    isInstallingUpdate = true;
-    console.log("[Electron Main] Update is ready. Triggering silent quitAndInstall on quit...");
-    stopExpressServer();
-    try {
-      autoUpdater.quitAndInstall(true, true);
-    } catch (err) {
-      console.error("[Electron Main] Error running quitAndInstall on before-quit:", err);
-    }
+    performUpdateInstall();
   } else {
     stopExpressServer();
   }
