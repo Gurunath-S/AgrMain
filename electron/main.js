@@ -662,18 +662,18 @@ async function createMainWindow() {
     });
   }
 
-  // Fast launch: wait ONLY for the HTML renderer to finish loading before showing the app
+  // Wait for BOTH the HTML renderer and backend Express server to be ready before showing main window
   const rendererLoaded = new Promise((resolve) => {
     mainWindow.webContents.once("did-finish-load", () => resolve(true));
     mainWindow.webContents.once("did-fail-load", () => resolve(false));
   });
 
-  rendererLoaded
-    .then((success) => {
+  Promise.all([rendererLoaded, serverPromise || Promise.resolve(true)])
+    .then(([rendererSuccess, serverSuccess]) => {
       if (!mainWindow || mainWindow.isDestroyed()) return;
 
-      if (success) {
-        // Transition from splash screen to main window immediately
+      if (rendererSuccess && serverSuccess) {
+        // Transition from splash screen to main window only when backend is ready
         if (splashWindow && !splashWindow.isDestroyed()) {
           splashWindow.close();
         }
@@ -687,7 +687,11 @@ async function createMainWindow() {
         if (splashWindow && !splashWindow.isDestroyed()) {
           splashWindow.close();
         }
-        dialog.showErrorBox("Startup Error", "Failed to load frontend resources. Please restart the application.");
+        if (!serverSuccess) {
+          dialog.showErrorBox("Backend Server Failure", "Failed to connect to backend server. Please restart the application.");
+        } else {
+          dialog.showErrorBox("Startup Error", "Failed to load frontend resources. Please restart the application.");
+        }
         app.quit();
       }
     })
