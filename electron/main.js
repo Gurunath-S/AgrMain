@@ -795,11 +795,12 @@ function registerIpcHandlers() {
     setTimeout(() => {
       try {
         autoUpdater.quitAndInstall(true, true);
+        setTimeout(() => app.exit(0), 500);
       } catch (err) {
         console.error("[AutoUpdater] Error calling quitAndInstall:", err);
-        app.quit();
+        app.exit(0);
       }
-    }, 400);
+    }, 1000);
   }
 
   // Triggered when user clicks "Install" / "Restart Now" in the React UI
