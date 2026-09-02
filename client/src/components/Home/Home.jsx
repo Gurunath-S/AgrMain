@@ -37,14 +37,13 @@ function Home() {
         >
           Go to Home Page
         </button>
-
-        {version && (
-          <div className="app-version-tag">
-            <span className="version-label">App Version:</span>
-            <span className="version-number">v{version}</span>
-          </div>
-        )}
       </div>
+
+      {version && (
+        <div className="corner-version-tag">
+          v{version}
+        </div>
+      )}
     </div>
   );
 }

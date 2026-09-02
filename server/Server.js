@@ -30,6 +30,7 @@
 })();
 
 const express = require("express");
+const compression = require("compression");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const authRoutes = require("./Routes/auth.routes");
@@ -70,6 +71,7 @@ const app = express();
 var morgan = require("morgan");
 const PORT = process.env.PORT || 5002;
 app.use(morgan("dev"));
+app.use(compression());
 
 app.use(cors({
   origin: true,

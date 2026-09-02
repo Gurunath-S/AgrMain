@@ -145,38 +145,21 @@
   }
 }
 
-.app-version-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 30px;
-  padding: 8px 18px;
-  background: #ffffff;
-  border: 1.5px solid #d4af37;
-  border-radius: 20px;
-  box-shadow: 0 4px 15px rgba(212, 175, 55, 0.15);
+.corner-version-tag {
+  position: absolute;
+  bottom: 16px;
+  right: 20px;
   font-family: 'Montserrat', sans-serif;
-  transition: all 0.3s ease;
-}
-
-.app-version-tag:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(212, 175, 55, 0.25);
-}
-
-.app-version-tag .version-label {
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: #6b7280;
-  text-transform: uppercase;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #9ca3af;
   letter-spacing: 1px;
-}
-
-.app-version-tag .version-number {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: #111827;
-  letter-spacing: 1.2px;
+  background: rgba(255, 255, 255, 0.7);
+  padding: 4px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  backdrop-filter: blur(4px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 .login-form {
   display: flex;
