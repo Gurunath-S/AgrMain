@@ -781,7 +781,7 @@ const Billing = () => {
         billDetailsprofit: billDetailsProfit,
         Stoneprofit: stoneProfit,
         Totalprofit: totalBillProfit,
-        // cashBalance: cashBalance,
+        cashBalance: cashBalance,
         hallmarkQty,
 
         // orderItems: billDetailRows.map((row) => ({
@@ -919,6 +919,7 @@ const Billing = () => {
         billDetailsprofit: billDetailsProfit,
         Stoneprofit: stoneProfit,
         Totalprofit: totalBillProfit,
+        cashBalance: cashBalance,
         hallmarkQty: hallmarkQtyToSave,
 
         orderItems: billDetailRows.map((row) => {
@@ -1530,9 +1531,9 @@ const Billing = () => {
     }
   }, [location.search, bills.length]);
 
-  const handlePrint = () => {
-    const billData = {
-      billNo: currentBill?.id,
+  const handlePrint = (customBillData = null) => {
+    const billData = customBillData || {
+      billNo: currentBill?.id || billNo,
       date: currentBill?.date ? new Date(currentBill.date).toLocaleDateString("en-IN") : date,
       time: currentBill?.time ? new Date(currentBill.time).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true, }) : time,
       selectedCustomer,
@@ -1601,13 +1602,14 @@ const Billing = () => {
     `;
 
     const printWindow = window.open("", "_blank", "width=1000,height=800");
-    printWindow.document.write(printHtml);
-    printWindow.document.close();
+    if (printWindow) {
+      printWindow.document.write(printHtml);
+      printWindow.document.close();
+    }
   };
 
   const handlePrintWithSave = async () => {
     if (isSaving) return;
-    setIsSaving(true);
     try {
       if (!selectedCustomer) {
         toast.error("Please select a customer before printing.");
@@ -1620,16 +1622,49 @@ const Billing = () => {
         return;
       }
 
-      await handleSave();
+      const dataToPrint = {
+        billNo: isEditMode ? (editBillId || billNo) : (billNo || currentBill?.id),
+        date: date,
+        time: time,
+        selectedCustomer,
+        billItems: billDetailRows.map((row) => ({
+          productName: row.productName,
+          count: row.count,
+          weight: row.wt,
+          stoneWeight: row.aStWt,
+          afterWeight: row.awt,
+          percentage: row.percent,
+          finalWeight: row.fwt,
+          repairStatus: row.repairStatus || "Sold",
+        })),
+        isEditMode,
+        pureBalance,
+        hallmarkBalance,
+        cashBalance,
+        prevHallmark,
+        hallmarkAmount,
+        totalHallmark,
+        FWT,
+        TotalFWT,
+        prevBalance: previousBalance,
+        hallMark: toNumber(billHallmark) || 0,
+        hallmarkQty,
+        totalBillHallmark,
+        billDetailsprofit: billDetailsProfit,
+        Stoneprofit: stoneProfit,
+        Totalprofit: totalBillProfit,
+      };
 
-      setTimeout(() => {
-        handlePrint();
-      }, 500);
+      if (isEditMode) {
+        await handleUpdate();
+      } else {
+        await handleSave();
+      }
+
+      handlePrint(dataToPrint);
     } catch (error) {
       console.error("Error while saving before print:", error);
       toast.error(`Unable to print: ${error.message}`);
-    } finally {
-      setIsSaving(false);
     }
   };
 
