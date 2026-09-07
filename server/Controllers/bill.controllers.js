@@ -94,7 +94,8 @@ const createBill = async (req, res) => {
     const billHallmarkEffect = (parseFloat(hallmarkBalance) || 0) - (parseFloat(prevHallmark) || 0);
     let newBill;
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(
+      async (tx) => {
       newBill = await tx.bill.create({
         data: {
           billno: nextBillNo,
@@ -279,7 +280,7 @@ const createBill = async (req, res) => {
           hallMarkBal: parseFloat(hallmarkBalance),
         },
       });
-    })
+    }, { maxWait: 15000, timeout: 30000 });
     res
       .status(201)
       .json({ message: "Bill created successfully", bill: newBill });
@@ -414,7 +415,8 @@ const updateBill = async (req, res) => {
     const updatedHallmarkBalance =
       currentHallmark - oldHallEffect + newHallEffect;
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(
+      async (tx) => {
       // --- REPLENISH OLD STOCK FIRST ---
       const oldOrderItems = await tx.orderItems.findMany({ where: { billId: billIdNum } });
       for (const oldItem of oldOrderItems) {
@@ -635,7 +637,7 @@ const updateBill = async (req, res) => {
         },
       });
 
-    });
+    }, { maxWait: 15000, timeout: 30000 });
 
     res.status(201).json({ message: "Bill updated successfully" });
   } catch (err) {
@@ -981,7 +983,8 @@ const deleteBill = async (req, res) => {
       return res.status(404).json({ msg: "Bill not found" });
     }
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(
+      async (tx) => {
       // --- REPLENISH STOCK ---
       for (const oldItem of billExist.orders) {
         if (oldItem.stockId) {
@@ -1059,7 +1062,7 @@ const deleteBill = async (req, res) => {
       await tx.bill.delete({
         where: { id: billIdNum },
       });
-    });
+    }, { maxWait: 15000, timeout: 30000 });
 
     res.status(200).json({ message: "Bill deleted successfully" });
   } catch (err) {

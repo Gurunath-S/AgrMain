@@ -372,7 +372,7 @@ const CustomerReturn = () => {
       setOpenReturnDialog(false);
       // Removed setSelectedBill(null) and fetchSoldBills() to keep modal open
     } catch (err) {
-      toast.error("Failed to return item");
+      toast.error(err.response?.data?.error || err.message || "Failed to return item");
     } finally {
       setReturnLoading(false);
     }

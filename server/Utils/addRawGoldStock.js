@@ -202,7 +202,7 @@ const receiptMoveToRawGold = async (received, customerId) => {
           });
         }
       }
-    });
+    }, { maxWait: 15000, timeout: 30000 });
   }
 
   await setTotalRawGold();

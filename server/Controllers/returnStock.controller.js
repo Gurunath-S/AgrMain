@@ -120,11 +120,13 @@ const returnCustomerItem = async (req, res) => {
       const fwtReduction = (Number(finalWeight) || Number(finalPurity) || 0) || (Number(item.finalWeight) || Number(item.finalPurity) || 0);
 
       if (customerBalance) {
+        const currentBal = Number(customerBalance.balance) || 0;
+        const currentHM = Number(customerBalance.hallMarkBal) || 0;
         await tx.customerBillBalance.update({
           where: { customer_id: bill.customer_id },
           data: {
-            balance: customerBalance.balance - fwtReduction,
-            hallMarkBal: customerBalance.hallMarkBal - hallmarkReduction
+            balance: currentBal - fwtReduction,
+            hallMarkBal: currentHM - hallmarkReduction
           }
         });
       } else {
@@ -139,28 +141,34 @@ const returnCustomerItem = async (req, res) => {
       }
 
 
-      if (item.repairStatus === "IN_REPAIR")
-        throw new Error("Item is in repair");
+      const safeItemWeight = Number(itemWeight) || 0;
+      const safeStoneWeight = Number(stoneWeight) || 0;
+      const safeNetWeight = (Number(netWeight) !== undefined && !isNaN(Number(netWeight)) && Number(netWeight) > 0) ? Number(netWeight) : Math.max(0, safeItemWeight - safeStoneWeight);
+      const safeTouch = Number(touch) || Number(item.touch) || 0;
+      const safeWastageValue = Number(wastageValue) || 0;
 
-      const actualPurityDelta = (netWeight * touch) / 100;
+      const actualPurityDelta = (safeNetWeight * safeTouch) / 100;
 
       let wastagePureDelta = 0;
       let finalPurityDelta = 0;
 
       if (wastageType === "Touch") {
-        finalPurityDelta = (netWeight * wastageValue) / 100;
+        finalPurityDelta = (safeNetWeight * safeWastageValue) / 100;
         wastagePureDelta = finalPurityDelta - actualPurityDelta;
 
       } else if (wastageType === "%") {
-        const wastageWeight = (netWeight * wastageValue) / 100;
-        const finalWastewt = netWeight + wastageWeight;
-        finalPurityDelta = (finalWastewt * touch) / 100;
+        const wastageWeight = (safeNetWeight * safeWastageValue) / 100;
+        const finalWastewt = safeNetWeight + wastageWeight;
+        finalPurityDelta = (finalWastewt * safeTouch) / 100;
         wastagePureDelta = finalPurityDelta - actualPurityDelta;
 
       } else if (wastageType === "+") {
-        const wastageWeight = netWeight + wastageValue;
-        finalPurityDelta = (wastageWeight * touch) / 100;
+        const wastageWeight = safeNetWeight + safeWastageValue;
+        finalPurityDelta = (wastageWeight * safeTouch) / 100;
         wastagePureDelta = finalPurityDelta - actualPurityDelta;
+      } else {
+        finalPurityDelta = actualPurityDelta;
+        wastagePureDelta = 0;
       }
 
       //  CREATE STOCK ENTRY BASED ON STOCK TYPE
@@ -174,10 +182,17 @@ const returnCustomerItem = async (req, res) => {
           });
           if (originalEntry) supplierId = originalEntry.supplierId;
         }
-        // Fallback to first available supplier if still null
+        // Fallback to first available supplier or create a default supplier if none exists
         if (!supplierId) {
           const firstSupplier = await tx.supplier.findFirst();
-          supplierId = firstSupplier?.id || null;
+          if (firstSupplier) {
+            supplierId = firstSupplier.id;
+          } else {
+            const defaultSupplier = await tx.supplier.create({
+              data: { name: "Default Supplier", contactNumber: "", address: "" }
+            });
+            supplierId = defaultSupplier.id;
+          }
         }
 
         // Create a NEW ItemPurchaseEntry record for the returned portion
@@ -248,6 +263,9 @@ const returnCustomerItem = async (req, res) => {
         } else if (item.wastageType === "+") {
           remFinalPurity = ((remainingNetWeight + Number(item.wastageValue || 0)) * Number(item.touch || 0)) / 100;
           remWastagePure = remFinalPurity - remActualPurity;
+        } else {
+          remFinalPurity = remActualPurity;
+          remWastagePure = 0;
         }
 
 
@@ -327,7 +345,7 @@ const returnCustomerItem = async (req, res) => {
 
       // Recalculate Bill Profits
       await recalculateBillProfit(Number(billId), tx);
-    });
+    }, { maxWait: 10000, timeout: 30000 });
 
     const updatedOrderItem = await prisma.orderItems.findUnique({
       where: { id: Number(orderItemId) }
@@ -372,7 +390,7 @@ const returnCustomerBill = async (req, res) => {
       }
 
       // Bill status update removed as Bill model does not have a status field.
-    });
+    }, { maxWait: 10000, timeout: 30000 });
 
     res.json({ success: true });
 

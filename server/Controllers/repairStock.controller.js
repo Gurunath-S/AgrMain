@@ -210,24 +210,21 @@ const sendToRepair = async (req, res) => {
 
         });
 
-        const goldsmith =
-          await tx.goldsmith.findUnique({
+        if (goldsmithId) {
+          const goldsmith = await tx.goldsmith.findUnique({
             where: { id: Number(goldsmithId) }
           });
 
-        await tx.goldsmith.update({
-
-          where: { id: Number(goldsmithId) },
-
-          data: {
-
-            balance:
-              goldsmith.balance +
-              Number(product.finalPurity)
-
+          if (goldsmith) {
+            const currentBal = Number(goldsmith.balance) || 0;
+            await tx.goldsmith.update({
+              where: { id: Number(goldsmithId) },
+              data: {
+                balance: currentBal + Number(product.finalPurity || 0)
+              }
+            });
           }
-
-        });
+        }
 
         return repair;
       }
@@ -384,29 +381,26 @@ const sendToRepair = async (req, res) => {
 
         });
 
-        const goldsmith =
-          await tx.goldsmith.findUnique({
+        if (goldsmithId) {
+          const goldsmith = await tx.goldsmith.findUnique({
             where: { id: Number(goldsmithId) }
           });
 
-        await tx.goldsmith.update({
-
-          where: { id: Number(goldsmithId) },
-
-          data: {
-
-            balance:
-              goldsmith.balance +
-              Number(repair.purity)
-
+          if (goldsmith) {
+            const currentBal = Number(goldsmith.balance) || 0;
+            await tx.goldsmith.update({
+              where: { id: Number(goldsmithId) },
+              data: {
+                balance: currentBal + Number(repair.purity || 0)
+              }
+            });
           }
-
-        });
+        }
 
         return repair;
       }
 
-    });
+    }, { maxWait: 10000, timeout: 30000 });
 
     res.json({ success: true, repair: result });
 
@@ -636,25 +630,21 @@ const returnFromRepair = async (req, res) => {
       // =================================
 
       if (repair.goldsmithId) {
-
-        const goldsmith =
-          await tx.goldsmith.findUnique({
-
-            where: { id: repair.goldsmithId }
-
-          });
-
-        // Goldsmith debt is reduced by the total pure gold weight returned (computedFinalPurity).
-        // computedFinalPurity already includes any wastage adjustment (wastageDelta).
-        const updatedBalance = goldsmith.balance - computedFinalPurity;
-
-        await tx.goldsmith.update({
-          where: { id: repair.goldsmithId },
-          data: {
-            balance: updatedBalance
-          }
+        const goldsmith = await tx.goldsmith.findUnique({
+          where: { id: repair.goldsmithId }
         });
 
+        if (goldsmith) {
+          const currentBal = Number(goldsmith.balance) || 0;
+          const updatedBalance = currentBal - computedFinalPurity;
+
+          await tx.goldsmith.update({
+            where: { id: repair.goldsmithId },
+            data: {
+              balance: updatedBalance
+            }
+          });
+        }
       }
 
 
@@ -674,7 +664,7 @@ const returnFromRepair = async (req, res) => {
 
       });
 
-    });
+    }, { maxWait: 10000, timeout: 30000 });
 
 
     res.json({
@@ -768,7 +758,7 @@ const sendCustomerItemToRepair = async (req, res) => {
 
       if (orderItem.stockType === "ITEM_PURCHASE") {
         // Fetch original item purchase entry to get supplierId
-        let supplierId = 1;
+        let supplierId = null;
         let supplierName = "Unknown";
 
         if (orderItem.stockId) {
@@ -781,13 +771,22 @@ const sendCustomerItemToRepair = async (req, res) => {
           }
         }
 
-        // Verify if the supplierId exists, otherwise fallback to first available
-        const existingSupplier = await tx.supplier.findUnique({ where: { id: supplierId } });
-        if (!existingSupplier) {
+        // Verify if the supplierId exists, otherwise fallback to first available or default supplier
+        if (supplierId) {
+          const existingSupplier = await tx.supplier.findUnique({ where: { id: supplierId } });
+          if (!existingSupplier) supplierId = null;
+        }
+        if (!supplierId) {
           const firstSupplier = await tx.supplier.findFirst();
           if (firstSupplier) {
             supplierId = firstSupplier.id;
             supplierName = firstSupplier.name;
+          } else {
+            const defaultSupplier = await tx.supplier.create({
+              data: { name: "Default Supplier", contactNumber: "", address: "" }
+            });
+            supplierId = defaultSupplier.id;
+            supplierName = defaultSupplier.name;
           }
         }
 
@@ -942,12 +941,6 @@ const sendCustomerItemToRepair = async (req, res) => {
         });
       }
 
-      const goldsmith = await tx.goldsmith.findUnique({
-        where: { id: Number(goldsmithId) }
-      });
-
-      // console.log("goldsmith-Details", goldsmith,"goldsmith-balnce", goldsmith.balance);
-
       // =================================
       // CUSTOMER BALANCE UPDATE
       // =================================
@@ -960,23 +953,34 @@ const sendCustomerItemToRepair = async (req, res) => {
         if (customerBalance) {
           const hallmarkRate = Number(orderItem.bill.hallMark) || 0;
           const hallmarkReduction = hallmarkRate * reductionCount;
+          const currentBal = Number(customerBalance.balance) || 0;
+          const currentHM = Number(customerBalance.hallMarkBal) || 0;
           
           await tx.customerBillBalance.update({
             where: { customer_id: customerId },
             data: {
-              balance: customerBalance.balance - repairFwt,
-              hallMarkBal: customerBalance.hallMarkBal - hallmarkReduction
+              balance: currentBal - repairFwt,
+              hallMarkBal: currentHM - hallmarkReduction
             }
           });
         }
       }
 
-      await tx.goldsmith.update({
-        where: { id: Number(goldsmithId) },
-        data: {
-          balance: goldsmith.balance + Number(finalPurityDelta),
+      if (goldsmithId) {
+        const goldsmith = await tx.goldsmith.findUnique({
+          where: { id: Number(goldsmithId) }
+        });
+
+        if (goldsmith) {
+          const currentBal = Number(goldsmith.balance) || 0;
+          await tx.goldsmith.update({
+            where: { id: Number(goldsmithId) },
+            data: {
+              balance: currentBal + Number(finalPurityDelta),
+            }
+          });
         }
-      });
+      }
 
       const updatedOrderItem = await tx.orderItems.findUnique({
         where: { id: Number(orderItemId) }
@@ -986,7 +990,7 @@ const sendCustomerItemToRepair = async (req, res) => {
       await recalculateBillProfit(Number(billId), tx);
 
       return { repair, updatedOrderItem };
-    });
+    }, { maxWait: 10000, timeout: 30000 });
 
     res.json({
       success: true,
